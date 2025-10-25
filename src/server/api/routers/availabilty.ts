@@ -23,7 +23,7 @@ const recurringSchema = z.object({
 
 export const availabilityRouter = createTRPCRouter({
   listMine: publicProcedure.query(({ ctx }) => {
-    const userId = ctx.session!.userId;
+    const userId = ctx.session!.user.id;
     return db.availability.findMany({
       where: { carpooler: { userId } },
       orderBy: { createdAt: "desc" },
@@ -32,7 +32,7 @@ export const availabilityRouter = createTRPCRouter({
   createOneOff: publicProcedure
     .input(oneOffSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session!.userId;
+      const userId = ctx.session!.user.id;
       const profile = await db.carpoolerProfile.findUnique({
         where: { userId },
       });
@@ -51,7 +51,7 @@ export const availabilityRouter = createTRPCRouter({
   createRecurring: publicProcedure
     .input(recurringSchema)
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session!.userId;
+      const userId = ctx.session!.user.id;
       const profile = await db.carpoolerProfile.findUnique({
         where: { userId },
       });

@@ -16,14 +16,14 @@ const routeInput = z.object({
 
 export const routesRouter = createTRPCRouter({
   listMine: publicProcedure.query(({ ctx }) => {
-    const userId = ctx.session!.userId;
+    const userId = ctx.session!.user.id;
     return db.routeTemplate.findMany({
       where: { carpooler: { userId } },
       orderBy: { createdAt: "desc" },
     });
   }),
   create: publicProcedure.input(routeInput).mutation(async ({ ctx, input }) => {
-    const userId = ctx.session!.userId;
+    const userId = ctx.session!.user.id;
     const profile = await db.carpoolerProfile.findUnique({
       where: { userId },
     });
