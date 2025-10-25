@@ -4,6 +4,8 @@
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useState } from "react";
+import { api } from "~/trpc/react";
+import { toast } from "react-hot-toast";
 
 type NominatimResult = {
   place_id: number;
@@ -30,9 +32,6 @@ type OSRMResponse = {
   routes?: OSRMRoute[];
 };
 
-// Leaflet accesses `window` at module-eval time, which breaks SSR builds.
-// Load Leaflet dynamically on the client and set the default icon there.
-
 export default function Map() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -43,6 +42,9 @@ export default function Map() {
   );
   const [route, setRoute] = useState<[number, number][] | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
+  const [duration, setDuration] = useState<number | null>(null);
+
+  const ride = api.carpooler.pushRide.useMutation();
 
   // Viewbox para Nuevo León / Monterrey (LonMin, LatMin, LonMax, LatMax)
   const viewbox = "-100.5,25.5,-99.9,26.5";
@@ -88,6 +90,25 @@ export default function Map() {
     url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
   };
 
+  const sendRide = async () => {
+    if (!coords) return;
+    const toastId = toast.loading("Enviando ruta...");
+    try {
+      await ride.mutateAsync({
+        latStart: coords.start[0],
+        lngStart: coords.start[1],
+        latEnd: coords.end[0],
+        lngEnd: coords.end[1],
+        distanceKm: distance ?? 0,
+        durationMin: duration ?? 0, 
+      });
+      toast.success("Ruta enviada con éxito!", { id: toastId });
+    } catch (error) {
+      console.error("Error sending ride:", error);
+      toast.error("Error al enviar la ruta.", { id: toastId });
+    }
+  };
+
   const mtyPos = [25.6866, -100.3161];
 
   useEffect(() => {
@@ -110,6 +131,7 @@ export default function Map() {
       }
       setRoute(routeData.geometry.coordinates.map(([lon, lat]) => [lat, lon]));
       setDistance(routeData.distance / 1000);
+      setDuration(routeData.distance / 1000 * 4)
     };
     void fetchRoute();
   }, [coords]);
@@ -129,7 +151,8 @@ export default function Map() {
 
   return (
     <div className="flex flex-col items-center gap-4 p-4">
-      <h2 className="text-xl font-bold">Distancia: {distance?.toFixed(2)} km</h2>
+      <h3 className="text-xl font-bold">Distancia: {distance?.toFixed(2)} km</h3>
+      <h3 className="text-xl font-bold">Duración: {duration?.toFixed(2)} min</h3>
       <div className="flex gap-2 w-full max-w-lg relative">
         <div className="flex-1 relative z-20">
           <input
@@ -202,6 +225,11 @@ export default function Map() {
           {route?.length ? <Polyline positions={route} pathOptions={{ color: "blue" }} /> : null}
         </MapContainer>
       </div>
+      <button
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer"
+        onClick={sendRide}
+        
+      >Enviar Ruta</button>
     </div>
   );
 }
