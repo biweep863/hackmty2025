@@ -1,4 +1,4 @@
-import { createTRPCRouter, publicProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "../trpc";
 import { z } from "zod";
 import { db } from "~/server/db";
 
@@ -196,5 +196,199 @@ export const routesRouter = createTRPCRouter({
         ),
       );
       return created;
+    }),
+  // --- Trip management -------------------------------------------------
+  createTrip: protectedProcedure
+    .input(
+      z.object({
+        routeTemplateId: z.string(),
+        departureAt: z.string(), // ISO datetime string
+        seatsTotal: z.number().min(1),
+        stops: z
+          .array(
+            z.object({
+              label: z.string().optional(),
+              lat: z.number(),
+              lng: z.number(),
+              ord: z.number().optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = (ctx.session as any).user.id;
+      // create Trip and its stops (if any)
+      const trip = await db.trip.create({
+        data: {
+          driverId: userId,
+          routeTemplateId: input.routeTemplateId,
+          departureAt: new Date(input.departureAt),
+          seatsTotal: input.seatsTotal,
+          seatsTaken: 0,
+          status: "OPEN",
+          tripStops: input.stops
+            ? {
+                create: input.stops.map((s) => ({
+                  label: s.label,
+                  lat: s.lat,
+                  lng: s.lng,
+                  ord: s.ord ?? 0,
+                })),
+              }
+            : undefined,
+        },
+        include: { tripStops: true },
+      });
+      return trip;
+    }),
+
+  listMyTrips: protectedProcedure.query(async ({ ctx }) => {
+    const userId = (ctx.session as any).user.id;
+    return db.trip.findMany({
+      where: { driverId: userId },
+      orderBy: { departureAt: "desc" },
+      include: { tripStops: true, bookings: true },
+    });
+  }),
+
+  // Search nearby trips by proximity to any TripStop (or pickup points)
+  searchNearbyTrips: publicProcedure
+    .input(
+      z.object({
+        lat: z.number(),
+        lng: z.number(),
+        radiusMeters: z.number().optional(),
+        limit: z.number().optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const radius = input.radiusMeters ?? 1500;
+      const limit = input.limit ?? 5;
+      const { lat, lng } = input;
+
+      // degree approximation
+      const degPerMeterLat = 1 / 111320;
+      const degPerMeterLng = 1 / (111320 * Math.cos((lat * Math.PI) / 180));
+      const latBuffer = radius * degPerMeterLat;
+      const lngBuffer = radius * degPerMeterLng;
+      const minLat = lat - latBuffer;
+      const maxLat = lat + latBuffer;
+      const minLng = lng - lngBuffer;
+      const maxLng = lng + lngBuffer;
+
+      // find trip stops in bbox
+      const stops = await db.tripStop.findMany({
+        where: {
+          lat: { gte: minLat, lte: maxLat },
+          lng: { gte: minLng, lte: maxLng },
+        },
+        include: {
+          trip: {
+            include: { driver: true, routeTemplate: true, bookings: true },
+          },
+        },
+      });
+
+      // compute haversine distance for sorting
+      function haversineMeters(
+        aLat: number,
+        aLng: number,
+        bLat: number,
+        bLng: number,
+      ) {
+        const R = 6371000;
+        const toRad = (v: number) => (v * Math.PI) / 180;
+        const dLat = toRad(bLat - aLat);
+        const dLon = toRad(bLng - aLng);
+        const lat1 = toRad(aLat);
+        const lat2 = toRad(bLat);
+        const sinDLat = Math.sin(dLat / 2);
+        const sinDLon = Math.sin(dLon / 2);
+        const a =
+          sinDLat * sinDLat +
+          Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+
+      const mapped = stops
+        .map((s) => ({
+          stopId: s.id,
+          label: s.label,
+          lat: parseFloat(String(s.lat)),
+          lng: parseFloat(String(s.lng)),
+          trip: s.trip,
+          distanceMeters: Math.round(
+            haversineMeters(
+              lat,
+              lng,
+              parseFloat(String(s.lat)),
+              parseFloat(String(s.lng)),
+            ),
+          ),
+        }))
+        .sort((a, b) => a.distanceMeters - b.distanceMeters)
+        .slice(0, limit);
+
+      return mapped;
+    }),
+
+  // Join a trip (creates Booking and increments seatsTaken atomically)
+  joinTrip: protectedProcedure
+    .input(z.object({ tripId: z.string(), stopId: z.string().optional() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = (ctx.session as any).user.id;
+      return await db.$transaction(async (tx) => {
+        const trip = await tx.trip.findUnique({ where: { id: input.tripId } });
+        if (!trip) throw new Error("TRIP_NOT_FOUND");
+        if (trip.status !== "OPEN") throw new Error("TRIP_NOT_OPEN");
+        if (trip.seatsTaken >= trip.seatsTotal) throw new Error("TRIP_FULL");
+
+        // create booking and increment seatsTaken
+        const booking = await tx.booking.create({
+          data: {
+            tripId: trip.id,
+            riderId: userId,
+            status: "ACCEPTED",
+            pickupPointId: input.stopId ?? undefined,
+          },
+        });
+        await tx.trip.update({
+          where: { id: trip.id },
+          data: { seatsTaken: { increment: 1 } },
+        });
+        return booking;
+      });
+    }),
+
+  leaveTrip: protectedProcedure
+    .input(z.object({ tripId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const userId = (ctx.session as any).user.id;
+      return await db.$transaction(async (tx) => {
+        const booking = await tx.booking.findUnique({
+          where: { tripId_riderId: { tripId: input.tripId, riderId: userId } },
+        });
+        if (!booking) throw new Error("BOOKING_NOT_FOUND");
+        if (booking.status === "ACCEPTED") {
+          // mark canceled and decrement seats
+          await tx.booking.update({
+            where: { id: booking.id },
+            data: { status: "CANCELED_BY_RIDER" },
+          });
+          await tx.trip.update({
+            where: { id: input.tripId },
+            data: { seatsTaken: { decrement: 1 } },
+          });
+          return { ok: true };
+        }
+        // otherwise just mark canceled
+        await tx.booking.update({
+          where: { id: booking.id },
+          data: { status: "CANCELED_BY_RIDER" },
+        });
+        return { ok: true };
+      });
     }),
 });
