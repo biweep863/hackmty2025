@@ -50,4 +50,12 @@ export const sitesRouter = createTRPCRouter({
         },
       }),
     ),
+  // Diagnostic: return all pickup points (with site) so the dev can inspect coordinates
+  allPickupPoints: publicProcedure.query(() =>
+    db.pickupPoint.findMany({
+      take: 1000,
+      include: { site: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ),
 });
