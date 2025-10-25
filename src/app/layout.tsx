@@ -49,11 +49,12 @@
 // }
 
 import "~/styles/globals.css";
-import toast, { Toaster } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
 
 import { TRPCReactProvider } from "~/trpc/react";
+import AuthGate from "~/components/AuthGate";
 
 export const metadata: Metadata = {
   title: "Create T3 App",
@@ -73,7 +74,9 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <Toaster/>
-        <TRPCReactProvider>{children}</TRPCReactProvider>
+        <TRPCReactProvider>
+          <AuthGate>{children}</AuthGate>
+        </TRPCReactProvider>
       </body>
     </html>
   );
