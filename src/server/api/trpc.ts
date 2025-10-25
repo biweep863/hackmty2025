@@ -32,7 +32,9 @@ export const createTRPCContext = async (opts?: { headers?: Headers }) => {
   // Pass undefined to getServerAuthSession in that case.
   let session = null;
   try {
-    session = await getServerAuthSession(opts?.headers);
+    // if (opts?.headers) {
+    //   session = await getServerAuthSession(opts.headers);
+    // }
   } catch (err) {
     // Log and continue with null session so protectedProcedure will reject
     // instead of crashing the server with unexpected errors.

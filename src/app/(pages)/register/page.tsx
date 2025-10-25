@@ -1,11 +1,13 @@
 "use client";
-
 import React, { useState } from "react";
 import Image from "next/image";
 import logo from "../inicio/Logo.png";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "~/trpc/react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +15,8 @@ export default function RegisterPage() {
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const createUser = api.register.UserRegister.useMutation();
+  const saveString = api.register.saveString.useMutation();
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     setStatus(null);
@@ -28,15 +32,18 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       // Demo: guardar en localStorage
-      const payload = { name, email, password, createdAt: new Date().toISOString() };
-      localStorage.setItem("frontend_last_registered", JSON.stringify(payload));
+      const payload = { email};
+      localStorage.setItem("user", JSON.stringify(payload));
       setStatus("Cuenta creada (demo). Revisa la consola o localStorage.");
       console.log("Registro demo:", payload);
     } catch (err) {
       console.error(err);
       setStatus("Error al registrar. Revisa la consola.");
     } finally {
+      createUser.mutateAsync({ email, name, password });
+      saveString.mutate(email);
       setLoading(false);
+      router.push("/user");
     }
   }
 
