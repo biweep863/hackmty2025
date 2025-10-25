@@ -6,7 +6,7 @@ import { BookingStatus } from "@prisma/client";
 
 export const bookingsRouter = createTRPCRouter({
   myBookings: publicProcedure.query(({ ctx }) => {
-    const riderId = ctx.session!.userId;
+    const riderId = ctx.session!.user.id;
     return db.booking.findMany({
       where: { riderId },
       include: {
@@ -25,7 +25,7 @@ export const bookingsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const riderId = ctx.session!.userId;
+      const riderId = ctx.session!.user.id;
 
       return db.$transaction(async (tx) => {
         const trip = await tx.trip.findUnique({ where: { id: input.tripId } });

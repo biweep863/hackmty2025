@@ -47,7 +47,7 @@ export const tripsRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session!.userId;
+      const userId = ctx.session!.user.id;
 
       return db.$transaction(async (tx) => {
         // opcional: validar propiedad del template

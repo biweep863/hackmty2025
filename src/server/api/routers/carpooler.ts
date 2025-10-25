@@ -14,7 +14,7 @@ export const carpoolerRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.session!.userId;
+      const userId = ctx.session!.user.id;
       return db.carpoolerProfile.upsert({
         where: { userId },
         create: { userId, ...input },
@@ -22,7 +22,7 @@ export const carpoolerRouter = createTRPCRouter({
       });
     }),
   getProfile: publicProcedure.query(({ ctx }) => {
-    const userId = ctx.session!.userId;
+    const userId = ctx.session!.user.id;
     return db.carpoolerProfile.findUnique({ where: { userId } });
   }),
 });
