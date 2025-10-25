@@ -1,3 +1,4 @@
+import DriverPage from "./pages/driver/page";
 export default function Home() {
   const links = [
     { href: "/sites", label: "Sites & PickupPoints" },
@@ -10,6 +11,8 @@ export default function Home() {
   ];
 
   return (
+    <main className="p-4">
+      <DriverPage />
     <main style={{ padding: 20 }}>
       <h1>Carpool Test Console</h1>
       <ul>

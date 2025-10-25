@@ -19,6 +19,7 @@ model User {
     tripsOffered     Trip[]            @relation("TripDriver")
     createdAt        DateTime          @default(now())
     updatedAt        DateTime          @updatedAt
+    rides            Ride[]
 }
 
 /// Sedes del banco (orígenes/destinos frecuentes)
@@ -38,6 +39,19 @@ model Site {
     routeTemplatesFrom RouteTemplate[] @relation("FromSiteTemplates")
     // Rutas donde este Site es el destino (B)
     routeTemplatesTo   RouteTemplate[] @relation("ToSiteTemplates")
+}
+
+model Ride {
+    id        String   @id @default(cuid())
+    userId    String?
+    latStart  Decimal @db.Decimal(9, 6)
+    lngStart  Decimal @db.Decimal(9, 6)
+    latEnd    Decimal @db.Decimal(9, 6)
+    lngEnd    Decimal @db.Decimal(9, 6)
+    distanceKm Decimal @db.Decimal(10, 2)
+    durationMin Int?
+    user      User?     @relation(fields: [userId], references: [id])
+    createdAt DateTime @default(now())
 }
 
 model CarpoolerProfile {
