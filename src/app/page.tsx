@@ -1,10 +1,23 @@
-import Map from "./_componentes/map";
+export default function Home() {
+  const links = [
+    { href: "/sites", label: "Sites & PickupPoints" },
+    { href: "/carpooler", label: "Carpooler Profile" },
+    { href: "/routes", label: "Route Templates (A→B)" },
+    { href: "/availability", label: "Availability (OneOff / Recurring)" },
+    { href: "/trips", label: "Trips (Create / Discover)" },
+    { href: "/bookings", label: "Bookings (My / Decide)" },
+  ];
 
-export default function HomePage() {
   return (
-    <main className="p-4">
-      <h1 className="text-2xl font-bold mb-4">Ruta entre puntos</h1>
-      <Map />
+    <main style={{ padding: 20 }}>
+      <h1>Carpool Test Console</h1>
+      <ul>
+        {links.map((l) => (
+          <li key={l.href}>
+            <a href={l.href}>{l.label}</a>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
