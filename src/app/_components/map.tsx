@@ -16,6 +16,8 @@ export default function Map({
   distance,
   pickupPoints,
   generatedStops,
+  extraRoute,
+  highlightPickupId,
 }: {
   coords?: { start: [number, number]; end: [number, number] };
   route?: [number, number][];
@@ -38,6 +40,8 @@ export default function Map({
         lng: number;
       }[]
     | null;
+  extraRoute?: [number, number][] | null;
+  highlightPickupId?: string | null;
 }) {
   const mtyPos = [25.6866, -100.3161];
 
@@ -73,6 +77,12 @@ export default function Map({
       {route?.length ? (
         <Polyline positions={route} pathOptions={{ color: primary }} />
       ) : null}
+      {extraRoute?.length ? (
+        <Polyline
+          positions={extraRoute}
+          pathOptions={{ color: "#00AA00", dashArray: "6 6" }}
+        />
+      ) : null}
       {pickupPoints?.map((p) => (
         <Marker key={p.id} position={[p.lat, p.lng]}>
           <Popup>
@@ -86,8 +96,10 @@ export default function Map({
         <CircleMarker
           key={s.id}
           center={[s.lat, s.lng]}
-          pathOptions={{ color: "#0b66ff" }}
-          radius={6}
+          pathOptions={{
+            color: highlightPickupId === s.id ? "#ff6600" : "#0b66ff",
+          }}
+          radius={highlightPickupId === s.id ? 8 : 6}
         >
           <Popup>{s.label ?? "Parada"}</Popup>
         </CircleMarker>
