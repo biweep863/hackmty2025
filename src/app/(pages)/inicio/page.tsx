@@ -41,13 +41,21 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-r from-black to-red-600 flex items-center py-16">
-      <div className="max-w-lg mx-auto p-6 animate-fade-up">
-        <div className="mb-6 flex justify-center animate-pop">
-          <Image src={logo} alt="Logo" width={96} height={96} className="object-contain bg-transparent" />
+    <div className="flex min-h-screen items-center bg-linear-to-r from-black to-red-600 py-16">
+      <div className="animate-fade-up mx-auto max-w-lg p-6">
+        <div className="animate-pop mb-6 flex justify-center">
+          <Image
+            src={logo}
+            alt="Logo"
+            width={96}
+            height={96}
+            className="bg-transparent object-contain"
+          />
         </div>
 
-        <h1 className="text-3xl heading-1 font-bold mb-3 text-white text-center">Inicia Sesión</h1>
+        <h1 className="heading-1 mb-3 text-center text-3xl font-bold text-white">
+          Inicia Sesión
+        </h1>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <label className="flex flex-col">
@@ -73,7 +81,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="primary-btn px-6 py-2 bg-linear-to-r from-red-600 to-red-500 text-white rounded-xl shadow-lg"
+              className="primary-btn rounded-xl bg-linear-to-r from-red-600 to-red-500 px-6 py-2 text-white shadow-lg"
             >
               {loading ? "Enviando..." : "Iniciar Sesión"}
             </button>
@@ -81,13 +89,22 @@ export default function AuthPage() {
 
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-200">¿Aún no tienes una cuenta?</p>
-            <Link href="/register" className="text-white font-semibold underline mt-1 inline-block">Regístrate</Link>
+            <Link
+              href="/register"
+              className="mt-1 inline-block font-semibold text-white underline"
+            >
+              Regístrate
+            </Link>
           </div>
         </form>
 
-        {status && <p className="mt-4 text-sm text-white text-center">{status}</p>}
+        {status && (
+          <p className="mt-4 text-center text-sm text-white">{status}</p>
+        )}
 
-        <div className="mt-8 text-center text-xs text-gray-200">Consulta el <span className="font-bold">Aviso de Privacidad</span></div>
+        <div className="mt-8 text-center text-xs text-gray-200">
+          Consulta el <span className="font-bold">Aviso de Privacidad</span>
+        </div>
       </div>
     </div>
   );

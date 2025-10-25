@@ -1,7 +1,6 @@
 // src/app/admin/page.tsx
 import Header from "../../_components/header";
 import Footer from "../../_components/footer";
-import CustomLoginText from "../../_components/custom-login-text";
 import { api } from "~/trpc/server";
 import AdminTabs from "../../_components/admin-tabs";
 import Sparkline from "../../_components/sparkline";
@@ -16,20 +15,6 @@ function pct(n: number) {
 }
 
 export default async function AdminPage() {
-  // const session = await getServerAuthSession();
-  // if (!session) {
-  //   return (
-  //     <div className="flex h-screen items-center justify-center">
-  //       <CustomLoginText
-  //         text="Please login to access the admin dashboard"
-  //         label={"Login"}
-  //       />
-  //     </div>
-  //   );
-  // }
-  // Optional role gate
-  // if (session.user.role !== "ADMIN") { ... }
-
   const [summary, trend, trips, security] = await Promise.all([
     api.admin.summary(),
     api.admin.salesTrend({ bucket: "day" }),
@@ -38,104 +23,176 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <div className="mt-16 min-h-screen bg-black text-white">
-      <div className="md:pb-8">
-        <Header
-          title="Admin — Carpool Analytics"
-          subtitle="Overview of platform performance and security"
-          // subtitle={session.user.name ?? ""}
-        />
-      </div>
+    <div className="min-h-screen bg-white text-gray-900">
+      <div className="mx-auto max-w-6xl p-6">
+        <div className="mt-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="col-span-2">
+              <div className="overflow-hidden rounded-lg border shadow-sm">
+                <div className="bg-red-600 p-4">
+                  <h2 className="text-lg font-semibold text-white">
+                    Dashboard
+                  </h2>
+                </div>
+                <div className="bg-white p-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded border bg-white p-4">
+                      <div className="text-xs text-gray-500">Trips</div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">
+                        {summary.tripsCount}
+                      </div>
+                    </div>
+                    <div className="rounded border bg-white p-4">
+                      <div className="text-xs text-gray-500">
+                        Seats Sold / Capacity
+                      </div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">
+                        {summary.seatsSold}{" "}
+                        <span className="text-sm text-gray-500">
+                          / {summary.seatsCapacity}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="rounded border bg-white p-4">
+                      <div className="text-xs text-gray-500">Occupancy</div>
+                      <div className="mt-1 text-2xl font-semibold text-green-600">
+                        {pct(summary.occupancy)}
+                      </div>
+                    </div>
+                    <div className="rounded border bg-white p-4">
+                      <div className="text-xs text-gray-500">Gross / Net</div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">
+                        {fmtMoney(summary.grossCents, summary.currency)}{" "}
+                        <span className="text-sm text-gray-500">
+                          / {fmtMoney(summary.netCents, summary.currency)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-      <main className="px-4 pt-6 pb-20 md:px-20">
-        <AdminTabs
-          summary={
-            <section className="space-y-6">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-                <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                  <div className="text-xs text-gray-300">Trips</div>
-                  <div className="mt-1 text-2xl font-semibold">
-                    {summary.tripsCount}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                  <div className="text-xs text-gray-300">
-                    Seats Sold / Capacity
-                  </div>
-                  <div className="mt-1 text-2xl font-semibold">
-                    {summary.seatsSold}{" "}
-                    <span className="text-gray-400">
-                      / {summary.seatsCapacity}
-                    </span>
-                  </div>
-                </div>
-                <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                  <div className="text-xs text-gray-300">Occupancy</div>
-                  <div className="mt-1 text-2xl font-semibold text-emerald-300">
-                    {pct(summary.occupancy)}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                  <div className="text-xs text-gray-300">Gross / Net</div>
-                  <div className="mt-1 text-2xl font-semibold">
-                    {fmtMoney(summary.grossCents, summary.currency)}
-                    <span className="text-sm text-gray-300">
-                      {" "}
-                      / {fmtMoney(summary.netCents, summary.currency)}
-                    </span>
+                  <div className="mt-6">
+                    <h3 className="mb-2 text-sm font-semibold text-gray-800">
+                      Daily Sales Trend
+                    </h3>
+                    <div className="rounded border bg-white p-4">
+                      <Sparkline
+                        series={trend.series.map((d) => ({
+                          label: d.bucket,
+                          value: d.netCents,
+                        }))}
+                        height={80}
+                      />
+                      <div className="mt-4 overflow-x-auto">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 text-left text-gray-600">
+                              <th className="px-3 py-2">Bucket</th>
+                              <th className="px-3 py-2">Trips</th>
+                              <th className="px-3 py-2">Gross</th>
+                              <th className="px-3 py-2">Net</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {trend.series.map((r) => (
+                              <tr
+                                key={r.bucket}
+                                className="border-t hover:bg-gray-50"
+                              >
+                                <td className="px-3 py-2 text-gray-700">
+                                  {r.bucket}
+                                </td>
+                                <td className="px-3 py-2 text-gray-700">
+                                  {r.trips}
+                                </td>
+                                <td className="px-3 py-2 text-gray-700">
+                                  {fmtMoney(r.grossCents, trend.currency)}
+                                </td>
+                                <td className="px-3 py-2 text-gray-700">
+                                  {fmtMoney(r.netCents, trend.currency)}
+                                </td>
+                              </tr>
+                            ))}
+                            {trend.series.length === 0 && (
+                              <tr>
+                                <td
+                                  colSpan={4}
+                                  className="px-3 py-4 text-center text-gray-500"
+                                >
+                                  No data yet.
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <div className="mb-2 flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-200">
-                    Daily Sales Trend
-                  </h3>
-                  <div className="text-xs text-gray-400">
-                    Points: {trend.series.length} · Currency: {trend.currency}
-                  </div>
-                </div>
-                <Sparkline
-                  series={trend.series.map((d) => ({
-                    label: d.bucket,
-                    value: d.netCents,
-                  }))}
-                  height={80}
-                />
-                <div className="mt-4 overflow-x-auto rounded border border-gray-800">
-                  <table className="w-full table-auto border-collapse text-sm">
+              <div className="mt-6 rounded-lg border bg-white p-4 shadow-sm">
+                <h3 className="mb-2 text-sm font-semibold text-gray-800">
+                  Recent Trips
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-950 text-left text-gray-300">
-                        <th className="px-3 py-2">Bucket</th>
-                        <th className="px-3 py-2">Trips</th>
+                      <tr className="bg-gray-50 text-left text-gray-600">
+                        <th className="px-3 py-2">Trip</th>
+                        <th className="px-3 py-2">Departure</th>
+                        <th className="px-3 py-2">Seats</th>
                         <th className="px-3 py-2">Gross</th>
                         <th className="px-3 py-2">Net</th>
+                        <th className="px-3 py-2">Status</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {trend.series.map((r) => (
+                      {trips.map((t) => (
                         <tr
-                          key={r.bucket}
-                          className="border-t border-gray-800 hover:bg-gray-950"
+                          key={t.tripId}
+                          className="border-t hover:bg-gray-50"
                         >
-                          <td className="px-3 py-2">{r.bucket}</td>
-                          <td className="px-3 py-2">{r.trips}</td>
                           <td className="px-3 py-2">
-                            {fmtMoney(r.grossCents, trend.currency)}
+                            <div className="font-medium text-gray-900">
+                              {t.fromLabel} → {t.toLabel}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {t.tripId}
+                            </div>
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {new Date(t.departureAt).toLocaleString()}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {t.seatsTaken}/{t.seatsTotal}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {fmtMoney(t.grossCents)}
+                          </td>
+                          <td className="px-3 py-2 text-gray-700">
+                            {fmtMoney(t.netCents)}
                           </td>
                           <td className="px-3 py-2">
-                            {fmtMoney(r.netCents, trend.currency)}
+                            <span
+                              className="inline-flex rounded border px-2 py-0.5 text-xs"
+                              style={{
+                                background: "#fff2f2",
+                                color: "#c30010",
+                                borderColor: "#ffd6d6",
+                              }}
+                            >
+                              {t.status}
+                            </span>
                           </td>
                         </tr>
                       ))}
-                      {trend.series.length === 0 && (
+                      {trips.length === 0 && (
                         <tr>
                           <td
-                            colSpan={4}
-                            className="px-3 py-4 text-center text-gray-400"
+                            colSpan={6}
+                            className="px-3 py-4 text-center text-gray-500"
                           >
-                            No data yet.
+                            No trips yet.
                           </td>
                         </tr>
                       )}
@@ -143,152 +200,68 @@ export default async function AdminPage() {
                   </table>
                 </div>
               </div>
-            </section>
-          }
-          sales={
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-200">
-                Trip Revenues (latest)
-              </h3>
-              <div className="overflow-x-auto rounded border border-gray-800">
-                <table className="w-full table-auto border-collapse text-sm">
-                  <thead>
-                    <tr className="bg-gray-950 text-left text-gray-300">
-                      <th className="px-3 py-2">Trip</th>
-                      <th className="px-3 py-2">Departure</th>
-                      <th className="px-3 py-2">Seats</th>
-                      <th className="px-3 py-2">Gross</th>
-                      <th className="px-3 py-2">Net</th>
-                      <th className="px-3 py-2">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {trips.map((t) => (
-                      <tr
-                        key={t.tripId}
-                        className="border-t border-gray-800 hover:bg-gray-950"
+            </div>
+
+            <aside className="space-y-4">
+              <div className="overflow-hidden rounded-lg border shadow-sm">
+                <div className="bg-red-600 p-3">
+                  <h4 className="text-sm font-semibold text-white">Security</h4>
+                </div>
+                <div className="bg-white p-3">
+                  <div className="mb-2 text-sm text-gray-700">
+                    Recent anomalies
+                  </div>
+                  <div className="space-y-2">
+                    {security.anomalies.slice(0, 6).map((a) => (
+                      <div
+                        key={`${a.tripId}-${a.type}-${a.departureAt}`}
+                        className="rounded border p-2"
                       >
-                        <td className="px-3 py-2">
-                          <div className="font-medium">
-                            {t.fromLabel} → {t.toLabel}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {t.tripId}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          {new Date(t.departureAt).toLocaleString()}
-                        </td>
-                        <td className="px-3 py-2">
-                          {t.seatsTaken}/{t.seatsTotal}
-                        </td>
-                        <td className="px-3 py-2">{fmtMoney(t.grossCents)}</td>
-                        <td className="px-3 py-2">{fmtMoney(t.netCents)}</td>
-                        <td className="px-3 py-2">
-                          <span className="inline-flex rounded border border-gray-700 bg-gray-800 px-2 py-0.5 text-xs">
-                            {t.status}
-                          </span>
-                        </td>
-                      </tr>
+                        <div className="text-xs text-gray-600">{a.type}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {a.route}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(a.departureAt).toLocaleString()}
+                        </div>
+                      </div>
                     ))}
-                    {trips.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-3 py-4 text-center text-gray-400"
-                        >
-                          No trips yet.
-                        </td>
-                      </tr>
+                    {security.anomalies.length === 0 && (
+                      <div className="text-sm text-gray-500">
+                        No anomalies detected.
+                      </div>
                     )}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          }
-          security={
-            <section className="space-y-4">
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <h3 className="text-sm font-semibold text-gray-200">
-                  Security / Anomalies
-                </h3>
-                <p className="mt-1 text-xs text-gray-400">
-                  Heuristics: trips canceled, zero-seat trips, low occupancy,
-                  high rejection rate.
-                </p>
-                <div className="mt-3 overflow-x-auto rounded border border-gray-800">
-                  <table className="w-full table-auto border-collapse text-sm">
-                    <thead>
-                      <tr className="bg-gray-950 text-left text-gray-300">
-                        <th className="px-3 py-2">Trip</th>
-                        <th className="px-3 py-2">Type</th>
-                        <th className="px-3 py-2">When</th>
-                        <th className="px-3 py-2">Detail</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {security.anomalies.map((a) => (
-                        <tr
-                          key={`${a.tripId}-${a.type}-${a.departureAt}`}
-                          className="border-t border-gray-800 hover:bg-gray-950"
-                        >
-                          <td className="px-3 py-2">
-                            <div className="font-medium">{a.route}</div>
-                            <div className="text-xs text-gray-400">
-                              {a.tripId}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2">
-                            <span className="inline-flex rounded border border-amber-700 bg-amber-900/50 px-2 py-0.5 text-xs text-amber-200">
-                              {a.type}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2">
-                            {new Date(a.departureAt).toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2">{a.detail}</td>
-                        </tr>
-                      ))}
-                      {security.anomalies.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="px-3 py-4 text-center text-gray-400"
-                          >
-                            No anomalies detected.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                  </div>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-gray-800 bg-gray-900 p-4">
-                <h3 className="text-sm font-semibold text-gray-200">
+              <div className="rounded-lg border bg-white p-4 shadow-sm">
+                <h4 className="text-sm font-semibold text-gray-800">
                   Operations
-                </h3>
-                <p className="mt-1 text-xs text-gray-400">
-                  Examples: export last month CSV, re-run pricing job, etc.
+                </h4>
+                <p className="mt-1 text-xs text-gray-500">
+                  Useful admin actions
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button className="rounded bg-indigo-600 px-3 py-1.5 text-sm hover:bg-indigo-500">
+                <div className="mt-3 flex flex-col gap-2">
+                  <button className="w-full rounded bg-red-600 py-2 text-white">
                     Export CSV (last 30d)
                   </button>
-                  <button className="rounded bg-teal-600 px-3 py-1.5 text-sm hover:bg-teal-500">
+                  <button className="w-full rounded border border-red-600 py-2 text-red-600">
                     Recompute Pricing
                   </button>
-                  <button className="rounded bg-rose-600 px-3 py-1.5 text-sm hover:bg-rose-500">
+                  <button className="w-full rounded bg-gray-100 py-2 text-gray-800">
                     Flag Suspicious Trips
                   </button>
                 </div>
               </div>
-            </section>
-          }
-        />
-      </main>
+            </aside>
+          </div>
+        </div>
 
-      <Footer />
+        <div className="mt-8">
+          <Footer />
+        </div>
+      </div>
     </div>
   );
 }

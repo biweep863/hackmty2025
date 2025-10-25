@@ -231,3 +231,18 @@ model VerificationToken {
 
     @@unique([identifier, token])
 }
+
+/// Generated stops created by drivers (suggested stops along a route)
+model GeneratedStop {
+    id        String   @id @default(cuid())
+    label     String?
+    lat       Decimal  @db.Decimal(9, 6)
+    lng       Decimal  @db.Decimal(9, 6)
+    routeHash String? // optional grouping identifier for the route
+    creatorId String? // optional user who generated the stops
+    creator   User?    @relation(fields: [creatorId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([creatorId])
+}
