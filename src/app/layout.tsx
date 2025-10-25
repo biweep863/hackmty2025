@@ -52,6 +52,7 @@ import "~/styles/globals.css";
 import { Toaster } from "react-hot-toast";
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
+import Navbar from "./_components/navbar"; 
 
 import { TRPCReactProvider } from "~/trpc/react";
 import AuthGate from "~/components/AuthGate";
@@ -74,6 +75,7 @@ export default function RootLayout({
     <html lang="en" className={`${geist.variable}`}>
       <body>
         <Toaster/>
+        <Navbar />
         <TRPCReactProvider>
           <AuthGate>{children}</AuthGate>
         </TRPCReactProvider>
