@@ -12,3 +12,4 @@ export { handler as GET, handler as POST };
 //   // session?.user.id / role / teamId are available
 //   return null;
 // }
+// src/app/api/auth/[...nextauth]/route.ts

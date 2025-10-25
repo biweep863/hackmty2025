@@ -51,4 +51,63 @@ export const authOptions: NextAuthOptions = {
 /**
  * Helper for Server Components / SSR (v4)
  */
-export const getServerAuthSession = () => getServerSession(authOptions);
+/**
+ * Helper for Server Components / SSR (v4)
+ *
+ * Accepts optional `headers` so callers (like tRPC RSC helpers) can pass the
+ * incoming request headers/cookies and allow NextAuth to read the session.
+ */
+export const getServerAuthSession = (
+  headers?:
+    | Headers
+    | Record<string, string>
+    | { getHeader?: (name: string) => string | undefined },
+) => {
+  if (headers) {
+    // Normalize several possible header shapes we may receive from different
+    // runtimes (Headers, plain object, or a Node-like object with getHeader).
+    let headersObj: Record<string, string> = {};
+    let getHeaderFn: (name: string) => string | undefined;
+
+    // Node-like object (already provides getHeader)
+    if (typeof (headers as any).getHeader === "function") {
+      const h = headers as any;
+      getHeaderFn = (name: string) =>
+        h.getHeader(name) ?? h.getHeader(name.toLowerCase());
+      headersObj = h.headers ?? {};
+    }
+    // Web `Headers` instance
+    else if (typeof (headers as any).get === "function") {
+      const h = headers as Headers;
+      headersObj = Object.fromEntries(h.entries());
+      getHeaderFn = (name: string) =>
+        h.get(name) ?? h.get(name.toLowerCase()) ?? undefined;
+    }
+    // Plain object map
+    else if (typeof headers === "object") {
+      const h = headers as Record<string, string>;
+      // copy and normalize keys to lower-case for easier lookup
+      headersObj = Object.fromEntries(
+        Object.entries(h).map(([k, v]) => [k.toLowerCase(), v]),
+      );
+      getHeaderFn = (name: string) => headersObj[name.toLowerCase()];
+    } else {
+      return getServerSession(authOptions);
+    }
+
+    const reqShim: any = {
+      headers: headersObj,
+      getHeader: getHeaderFn,
+      url: "/",
+      method: "GET",
+    };
+
+    return getServerSession(
+      reqShim as any,
+      undefined as any,
+      authOptions as any,
+    );
+  }
+
+  return getServerSession(authOptions);
+};

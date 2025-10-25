@@ -13,6 +13,7 @@ import { ZodError } from "zod";
 
 import { auth } from "~/server/auth";
 import { db } from "~/server/db";
+import { getServerAuthSession } from "../auth/config";
 
 /**
  * 1. CONTEXT
@@ -26,13 +27,23 @@ import { db } from "~/server/db";
  *
  * @see https://trpc.io/docs/server/context
  */
-export const createTRPCContext = async (opts: { headers: Headers }) => {
-  const session = await auth();
+export const createTRPCContext = async (opts?: { headers?: Headers }) => {
+  // Be defensive: callers may omit headers (e.g. some execution paths).
+  // Pass undefined to getServerAuthSession in that case.
+  let session = null;
+  try {
+    session = await getServerAuthSession(opts?.headers);
+  } catch (err) {
+    // Log and continue with null session so protectedProcedure will reject
+    // instead of crashing the server with unexpected errors.
+    console.error("Error resolving server auth session:", err);
+    session = null;
+  }
 
   return {
     db,
     session,
-    ...opts,
+    ...(opts ?? {}),
   };
 };
 
@@ -121,13 +132,13 @@ export const publicProcedure = t.procedure.use(timingMiddleware);
 export const protectedProcedure = t.procedure
   .use(timingMiddleware)
   .use(({ ctx, next }) => {
-    if (!ctx.session?.user) {
+    if (!(ctx.session as any)?.user) {
       throw new TRPCError({ code: "UNAUTHORIZED" });
     }
     return next({
       ctx: {
         // infers the `session` as non-nullable
-        session: { ...ctx.session, user: ctx.session.user },
+        session: { ...(ctx.session as any), user: (ctx.session as any).user },
       },
     });
   });
