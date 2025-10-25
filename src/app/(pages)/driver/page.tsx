@@ -1,4 +1,4 @@
-import Map from '../../components/map';
+import Map from '../../_components/map';
 
 export default function DriverPage() {
   return (
