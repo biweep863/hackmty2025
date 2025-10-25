@@ -1,6 +1,6 @@
 // src/server/api/routers/admin.ts
 import { z } from "zod";
-import { createTRPCRouter, protectedProcedure } from "../trpc";
+import { createTRPCRouter, publicProcedure } from "../trpc";
 import { db } from "~/server/db";
 import { env } from "~/env";
 
@@ -50,8 +50,11 @@ function computeTripFinance(input: {
 }
 
 export const adminRouter = createTRPCRouter({
-  // Basic guard: require logged-in user (add role guard if needed)
-  summary: protectedProcedure
+  // NOTE: switched these endpoints to `publicProcedure` so the Admin page
+  // can be viewed without requiring an authenticated session. If these
+  // should be restricted, switch back to `protectedProcedure` and add a
+  // role-based guard.
+  summary: publicProcedure
     .input(
       z
         .object({
@@ -101,7 +104,7 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 
-  salesTrend: protectedProcedure
+  salesTrend: publicProcedure
     .input(
       z.object({
         from: z.string().datetime().optional(),
@@ -171,7 +174,7 @@ export const adminRouter = createTRPCRouter({
       return { series, currency: "USD" };
     }),
 
-  tripRevenues: protectedProcedure
+  tripRevenues: publicProcedure
     .input(
       z
         .object({ limit: z.number().int().min(1).max(200).default(50) })
@@ -189,7 +192,7 @@ export const adminRouter = createTRPCRouter({
     }),
 
   // Very simple anomaly checks; tune as you wish
-  securityAnomalies: protectedProcedure
+  securityAnomalies: publicProcedure
     .input(
       z
         .object({

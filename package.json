@@ -32,7 +32,7 @@
     "@trpc/server": "^11.0.0",
     "leaflet": "^1.9.4",
     "next": "^15.2.3",
-    "next-auth": "^4.24.11",
+    "next-auth": "^4.24.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.6.0",
@@ -45,7 +45,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@tailwindcss/postcss": "^4.0.15",
     "@types/leaflet": "^1.9.21",
-    "@types/node": "^20.14.10",
+    "@types/node": "^20.19.23",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9.23.0",
@@ -55,11 +55,15 @@
     "prettier-plugin-tailwindcss": "^0.6.11",
     "prisma": "^6.5.0",
     "tailwindcss": "^4.0.15",
-    "typescript": "^5.8.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
     "typescript-eslint": "^8.27.0"
   },
   "ct3aMetadata": {
     "initVersion": "7.39.3"
   },
-  "packageManager": "npm@10.7.0"
+  "packageManager": "npm@10.7.0",
+  "prisma": {
+    "seed": "node --loader ts-node/esm prisma/seed.ts"
+  }
 }
