@@ -8,6 +8,7 @@ export default function Home() {
     { href: "/bookings", label: "Bookings (My / Decide)" },
     { href: "/auth", label: "Login / Registro (frontend demo)" },
     { href: "/driver", label: "Driver Page (Map Component)" },
+    { href: "/user", label: "User Page (My Trips)" },
   ];
 
   return (

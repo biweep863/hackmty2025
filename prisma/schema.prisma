@@ -42,16 +42,19 @@ model Site {
 }
 
 model Ride {
-    id        String   @id @default(cuid())
-    userId    String?
-    latStart  Decimal @db.Decimal(9, 6)
-    lngStart  Decimal @db.Decimal(9, 6)
-    latEnd    Decimal @db.Decimal(9, 6)
-    lngEnd    Decimal @db.Decimal(9, 6)
-    distanceKm Decimal @db.Decimal(10, 2)
+    id          String   @id @default(cuid())
+    userId      String?
+    origin      String
+    destination String
+    latStart    Decimal  @db.Decimal(9, 6)
+    lngStart    Decimal  @db.Decimal(9, 6)
+    latEnd      Decimal  @db.Decimal(9, 6)
+    lngEnd      Decimal  @db.Decimal(9, 6)
+    distanceKm  Decimal  @db.Decimal(10, 2)
+    price       Decimal  @db.Decimal(10, 2)
     durationMin Int?
-    user      User?     @relation(fields: [userId], references: [id])
-    createdAt DateTime @default(now())
+    user        User?     @relation(fields: [userId], references: [id])
+    createdAt   DateTime  @default(now())
 }
 
 model CarpoolerProfile {
