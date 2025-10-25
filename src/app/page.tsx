@@ -6,6 +6,7 @@ export default function Home() {
     { href: "/availability", label: "Availability (OneOff / Recurring)" },
     { href: "/trips", label: "Trips (Create / Discover)" },
     { href: "/bookings", label: "Bookings (My / Decide)" },
+    { href: "/auth", label: "Login / Registro (frontend demo)" },
   ];
 
   return (
