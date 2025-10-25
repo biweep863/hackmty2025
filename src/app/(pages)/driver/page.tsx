@@ -112,7 +112,7 @@ export default function DriverPage() {
   const [destinationResults, setDestinationResults] = useState<
     NominatimResult[]
   >([]);
-  const [extraResults, setExtraResults] = useState<NominatimResult[]>([]);
+
   const [coords, setCoords] = useState<{
     start: [number, number];
     end: [number, number];
@@ -124,6 +124,11 @@ export default function DriverPage() {
 
   const ride = api.carpooler.pushRide.useMutation();
   const saveStops = api.routes.saveGeneratedStops.useMutation();
+  const createTemplate = api.routes.create.useMutation();
+  const createTrip = api.routes.createTrip.useMutation();
+  const listMyTrips = api.routes.listMyTrips.useQuery(undefined, {
+    enabled: true,
+  });
 
   // Banorte brand colors
   const primary = "#e60012";
@@ -131,7 +136,10 @@ export default function DriverPage() {
 
   const originRef = useRef<HTMLInputElement | null>(null);
   const destRef = useRef<HTMLInputElement | null>(null);
-  const extraRef = useRef<HTMLInputElement | null>(null);
+
+  const [pinMode, setPinMode] = useState<"none" | "origin" | "destination">(
+    "none",
+  );
 
   // Viewbox para Nuevo León / Monterrey (LonMin, LatMin, LonMax, LatMax)
   const viewbox = "-100.5,25.5,-99.9,26.5";
@@ -203,13 +211,10 @@ export default function DriverPage() {
 
   const [bufferMeters, setBufferMeters] = useState<number>(1500);
 
-  // Third / extra location (rider) and its route to the chosen pickup
-  const [extraLocation, setExtraLocation] = useState<string>("");
-  const [extraCoords, setExtraCoords] = useState<[number, number] | null>(null);
-  const [extraRoute, setExtraRoute] = useState<[number, number][] | null>(null);
-  const [highlightPickupId, setHighlightPickupId] = useState<string | null>(
-    null,
-  );
+  // no extra location: route is A -> B
+  const [templateId, setTemplateId] = useState<string | null>(null);
+  const [departureAtInput, setDepartureAtInput] = useState<string>("");
+  const [seatsTotalInput, setSeatsTotalInput] = useState<number>(3);
 
   const pickupInput = coords
     ? {
@@ -222,10 +227,6 @@ export default function DriverPage() {
     : { fromLat: 0, fromLng: 0, toLat: 0, toLng: 0, bufferMeters: 600 };
 
   const pickupQuery = api.routes.pickupPointsAlongRoute.useQuery(pickupInput, {
-    enabled: false,
-  });
-
-  const allPickupQuery = api.sites.allPickupPoints.useQuery(undefined, {
     enabled: false,
   });
 
@@ -245,18 +246,70 @@ export default function DriverPage() {
     }
   };
 
-  // Extra location search (like origin/destination)
-  const handleExtraSearch = async () => {
-    if (!extraLocation) return setExtraResults([]);
-    const results = await searchPlace(extraLocation);
-    setExtraResults(results);
+  const handleCreateTemplate = async () => {
+    if (!coords)
+      return toast.error(
+        "Selecciona origen y destino antes de guardar plantilla",
+      );
+    try {
+      const res = await createTemplate.mutateAsync({
+        fromLabel: origin || "Origen",
+        fromLat: coords.start[0],
+        fromLng: coords.start[1],
+        toLabel: destination || "Destino",
+        toLat: coords.end[0],
+        toLng: coords.end[1],
+      });
+      setTemplateId(res.id);
+      toast.success("Plantilla guardada");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error guardando plantilla");
+    }
   };
 
-  const selectExtra = (lat: string, lon: string, label: string) => {
-    const position: [number, number] = [parseFloat(lat), parseFloat(lon)];
-    setExtraCoords(position);
-    setExtraResults([]);
-    setExtraLocation(label);
+  const handleCreateTrip = async () => {
+    if (!templateId)
+      return toast.error("Crea o selecciona una plantilla primero");
+    if (!departureAtInput)
+      return toast.error("Selecciona fecha y hora de salida");
+    try {
+      const res = await createTrip.mutateAsync({
+        routeTemplateId: templateId,
+        departureAt: new Date(departureAtInput).toISOString(),
+        seatsTotal: seatsTotalInput,
+        stops: (generatedStops ?? []).map((s, i) => ({
+          label: s.label,
+          lat: s.lat,
+          lng: s.lng,
+          ord: i,
+        })),
+      });
+      toast.success("Trip creado");
+      // refresh trips
+      void listMyTrips.refetch();
+    } catch (err) {
+      console.error(err);
+      toast.error("Error creando Trip");
+    }
+  };
+  const handleMapClick = (lat: number, lng: number) => {
+    if (pinMode === "none") return;
+    const pos: [number, number] = [lat, lng];
+    if (pinMode === "origin") {
+      if (coords) setCoords({ ...coords, start: pos });
+      else setCoords({ start: pos, end: pos });
+      setOrigin(`Pinned ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setOriginResults([]);
+    }
+    if (pinMode === "destination") {
+      if (coords) setCoords({ ...coords, end: pos });
+      else setCoords({ start: pos, end: pos });
+      setDestination(`Pinned ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setDestinationResults([]);
+    }
+    // after placing one pin, turn off pin mode
+    setPinMode("none");
   };
 
   // distance from point to segment (meters)
@@ -304,113 +357,7 @@ export default function DriverPage() {
   }
 
   // Find nearest pickup (from pickupQuery data and generatedStops) to extraCoords.
-  const handleFindNearestPickupFromExtra = async () => {
-    setExtraRoute(null);
-    setHighlightPickupId(null);
-    if (!extraCoords)
-      return toast.error("Selecciona la ubicación extra primero");
-    // collect candidates
-    const candidates: { id: string; lat: number; lng: number }[] = [];
-    if (pickupQuery.data && pickupQuery.data.length > 0) {
-      for (const p of pickupQuery.data) {
-        if (!p) continue;
-        candidates.push({
-          id: String(p.id),
-          lat: Number(p.lat),
-          lng: Number(p.lng),
-        });
-      }
-    }
-    if (generatedStops) {
-      for (const s of generatedStops) {
-        candidates.push({ id: s.id, lat: s.lat, lng: s.lng });
-      }
-    }
-    if (candidates.length === 0)
-      return toast.error(
-        "No hay puntos de recogida cargados. Genera o busca puntos primero.",
-      );
-
-    // compute distance from extraCoords to each candidate; prefer ones close to the main route if route exists
-    const scored = candidates.map((c) => {
-      const dToExtra = haversineMeters(
-        extraCoords[0],
-        extraCoords[1],
-        c.lat,
-        c.lng,
-      );
-      let dToRoute = Infinity;
-      if (route && route.length >= 2) {
-        for (let i = 0; i < route.length - 1; i++) {
-          const a = route[i]!;
-          const b = route[i + 1]!;
-          const segDist = pointToSegmentDistanceMeters(
-            c.lng,
-            c.lat,
-            a[1],
-            a[0],
-            b[1],
-            b[0],
-          );
-          if (segDist < dToRoute) dToRoute = segDist;
-        }
-      }
-      return { ...c, dToExtra, dToRoute };
-    });
-
-    // prefer candidates that are within bufferMeters of route; otherwise pick by proximity to extra
-    const nearRoute = scored.filter((s) => s.dToRoute <= bufferMeters);
-    let chosen = null;
-    if (nearRoute.length > 0) {
-      chosen = nearRoute.reduce((a, b) => (a.dToExtra < b.dToExtra ? a : b));
-    } else {
-      chosen = scored.reduce((a, b) => (a.dToExtra < b.dToExtra ? a : b));
-    }
-
-    if (!chosen) return toast.error("No se encontró un punto apropiado");
-
-    // request OSRM route from extraCoords to chosen
-    try {
-      const res = await fetch(
-        `https://router.project-osrm.org/route/v1/driving/${extraCoords[1]},${extraCoords[0]};${chosen.lng},${chosen.lat}?overview=full&geometries=geojson`,
-      );
-      if (!res.ok) {
-        // fallback: just draw straight line
-        setExtraRoute([
-          [extraCoords[0], extraCoords[1]],
-          [chosen.lat, chosen.lng],
-        ]);
-        setHighlightPickupId(chosen.id);
-        toast.success("Trazado aproximado (OSRM no respondió)");
-        return;
-      }
-      const data = (await res.json()) as OSRMResponse;
-      const r = data.routes?.[0];
-      if (!r) {
-        setExtraRoute([
-          [extraCoords[0], extraCoords[1]],
-          [chosen.lat, chosen.lng],
-        ]);
-        setHighlightPickupId(chosen.id);
-        toast.success("Trazado aproximado");
-        return;
-      }
-      const poly = r.geometry.coordinates.map(
-        ([lon, lat]) => [lat, lon] as [number, number],
-      );
-      setExtraRoute(poly);
-      setHighlightPickupId(chosen.id);
-      toast.success("Ruta desde la ubicación al punto de recogida generada");
-    } catch (err) {
-      console.error(err);
-      setExtraRoute([
-        [extraCoords[0], extraCoords[1]],
-        [chosen.lat, chosen.lng],
-      ]);
-      setHighlightPickupId(chosen.id);
-      toast.success("Trazado local generado");
-    }
-  };
+  // no extra-route helper; simplified A->B flow
 
   // Client-side generated stops from the displayed route (no DB required).
   const [generatedStops, setGeneratedStops] = useState<
@@ -613,25 +560,31 @@ export default function DriverPage() {
                 }
               />
             </div>
-            <div className="relative z-10 mt-2">
-              <input
-                ref={extraRef}
-                value={extraLocation}
-                onChange={(e) => setExtraLocation(e.target.value)}
-                onKeyUp={handleExtraSearch}
-                placeholder="Ubicación extra (ej. pasajero)"
-                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
-              />
-              <SuggestionPortal
-                anchorRef={extraRef}
-                items={extraResults}
-                visible={extraResults.length > 0}
-                onSelect={(it) => selectExtra(it.lat, it.lon, it.display_name)}
-              />
+
+            <div className="mt-2 flex gap-2">
+              <button
+                className={`rounded px-3 py-1 text-sm ${pinMode === "origin" ? "bg-red-600 text-white" : "border bg-white"}`}
+                onClick={() =>
+                  setPinMode(pinMode === "origin" ? "none" : "origin")
+                }
+              >
+                Pin Origen
+              </button>
+              <button
+                className={`rounded px-3 py-1 text-sm ${pinMode === "destination" ? "bg-red-600 text-white" : "border bg-white"}`}
+                onClick={() =>
+                  setPinMode(pinMode === "destination" ? "none" : "destination")
+                }
+              >
+                Pin Destino
+              </button>
+              <div className="ml-2 self-center text-sm text-gray-600">
+                Modo pin: {pinMode}
+              </div>
             </div>
           </div>
 
-          <div className="z-0 mt-4 h-[70vh] w-full">
+          <div className="z-0 mt-4 h-[60vh] w-full overflow-hidden rounded-md md:h-[72vh]">
             <Map
               coords={coords ?? undefined}
               route={route ?? undefined}
@@ -642,110 +595,119 @@ export default function DriverPage() {
                   : undefined
               }
               generatedStops={generatedStops ?? undefined}
-              extraRoute={extraRoute ?? undefined}
-              highlightPickupId={highlightPickupId ?? undefined}
+              onMapClick={handleMapClick}
             />
           </div>
         </div>
 
         <aside className="space-y-4">
           <div className="rounded border bg-white p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Distancia</div>
-            <div className="text-xl font-semibold">
-              {distance ? distance.toFixed(2) + " km" : "—"}
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-gray-500">Distancia</div>
+                <div className="text-lg font-semibold">
+                  {distance ? distance.toFixed(2) + " km" : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Duración</div>
+                <div className="text-lg font-semibold">
+                  {duration ? duration.toFixed(2) + " min" : "—"}
+                </div>
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Precio</div>
+                <div className="text-lg font-semibold">
+                  {price ? "$" + price.toFixed(2) : "—"}
+                </div>
+              </div>
             </div>
           </div>
 
           <div className="rounded border bg-white p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Duración</div>
-            <div className="text-xl font-semibold">
-              {duration ? duration.toFixed(2) + " min" : "—"}
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                className="w-full rounded-md bg-red-600 px-4 py-2 font-medium text-white shadow hover:bg-red-700"
+                onClick={sendRide}
+              >
+                Enviar ruta
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  onClick={() => {
+                    setOrigin("");
+                    setDestination("");
+                    setCoords(null);
+                    setRoute(null);
+                    setDistance(null);
+                    setDuration(null);
+                    setPrice(null);
+                  }}
+                >
+                  Limpiar
+                </button>
+                <button
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  onClick={handleFindPickupPoints}
+                >
+                  Buscar puntos
+                </button>
+                <button
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  onClick={handleGenerateStops}
+                >
+                  Generar paradas
+                </button>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  onClick={() => void handleCreateTemplate()}
+                >
+                  Guardar plantilla
+                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={departureAtInput}
+                    onChange={(e) => setDepartureAtInput(e.target.value)}
+                    className="flex-1 rounded border p-1"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={seatsTotalInput}
+                    onChange={(e) => setSeatsTotalInput(Number(e.target.value))}
+                    className="w-20 rounded border p-1"
+                    min={1}
+                  />
+                  <button
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                    onClick={() => void handleCreateTrip()}
+                  >
+                    Crear Trip
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  onClick={() => {
+                    handleClearStops();
+                  }}
+                >
+                  Limpiar paradas
+                </button>
+              </div>
             </div>
           </div>
 
           <div className="rounded border bg-white p-4 shadow-sm">
-            <div className="text-sm text-gray-500">Precio</div>
-            <div className="text-xl font-semibold">
-              {price ? "$" + price.toFixed(2) : "—"}
-            </div>
-          </div>
-
-          <div className="flex gap-2 p-4">
-            <button
-              className="flex-1 rounded-md px-4 py-2 font-medium text-white shadow"
-              style={{ background: primary }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = primaryDark)
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = primary)}
-              onClick={sendRide}
-            >
-              Enviar ruta
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={() => {
-                setOrigin("");
-                setDestination("");
-                setCoords(null);
-                setRoute(null);
-                setDistance(null);
-                setDuration(null);
-                setPrice(null);
-              }}
-            >
-              Limpiar
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={handleFindPickupPoints}
-            >
-              Buscar puntos
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={async () => {
-                try {
-                  const res = await allPickupQuery.refetch();
-                  console.log("allPickupPoints", res.data);
-                  toast.success(
-                    `Encontrados ${res.data?.length ?? 0} pickupPoints (ver consola)`,
-                  );
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Error al obtener todos los pickupPoints");
-                }
-              }}
-            >
-              Ver todos los puntos
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={() => {
-                handleGenerateStops();
-              }}
-            >
-              Generar paradas
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={() => {
-                void handleFindNearestPickupFromExtra();
-              }}
-            >
-              Ir al punto más cercano
-            </button>
-            <button
-              className="rounded-md border border-gray-300 bg-white px-4 py-2"
-              onClick={() => {
-                handleClearStops();
-              }}
-            >
-              Limpiar paradas
-            </button>
-          </div>
-
-          <div className="p-4">
             <label className="text-sm text-gray-600">Radio (m)</label>
             <select
               value={bufferMeters}
