@@ -2,6 +2,7 @@
 
 import React from "react";
 import { api } from "~/trpc/react";
+import UserCard from "~/app/_components/UserCard";
 
 export default function UserPage() {
   const { data: trips, isLoading, error } = api.trips.getTrips.useQuery();
@@ -15,6 +16,7 @@ export default function UserPage() {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+        <UserCard />
       <header className="rounded-md mb-6 overflow-hidden shadow-md" style={{ background: primary }}>
         <div className="p-6">
           <h1 className="text-2xl font-bold text-white">Viajes disponibles</h1>

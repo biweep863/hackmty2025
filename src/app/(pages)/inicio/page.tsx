@@ -4,53 +4,41 @@ import React, { useState } from "react";
 import Image from "next/image";
 import logo from "./Logo.png";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { api } from "~/trpc/react";
 
 export default function AuthPage() {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const endpoint = useState<string>("")[0];
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const saveString = api.register.saveString.useMutation();
+  const isUser = api.register.isUser.useQuery(identifier);
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
-    setStatus(null);
+    // setStatus(null);
     if (!identifier || !password) {
       setStatus("Por favor completa usuario/email y contraseña.");
       return;
     }
-
+    if(!isUser.data) {
+      setStatus("Usuario no encontrado. Por favor regístrate.");
+      return;
+    }
     setLoading(true);
     try {
-      if (endpoint) {
-        // intenta enviar al endpoint dado
-  const res = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ identifier, password }),
-        });
-        const text = await (res.text());
-        if (!res.ok) {
-          setStatus(`Error del endpoint: ${res.status} ${text}`);
-        } else {
-          setStatus(`Enviado al endpoint. Respuesta: ${text}`);
-        }
-      } else {
-        // sin endpoint: demo local (no seguro)
-        const payload = { identifier, password, sentAt: new Date().toISOString() };
-        localStorage.setItem("frontend_last_credentials", JSON.stringify(payload));
-        console.log("Credenciales guardadas localmente (demo):", payload);
-        setStatus("Enviado localmente (demo). Revisa la consola o localStorage.");
-      }
+    saveString.mutate(identifier);
     } catch (err) {
       console.error(err);
       setStatus("Error al enviar. Revisa la consola.");
     } finally {
+      router.push("/user");
       setLoading(false);
     }
   }
-
-  
 
   return (
     <div className="min-h-screen bg-linear-to-r from-black to-red-600 flex items-center py-16">
