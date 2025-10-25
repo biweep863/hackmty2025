@@ -133,6 +133,10 @@ export default function DriverPage() {
   const destRef = useRef<HTMLInputElement | null>(null);
   const extraRef = useRef<HTMLInputElement | null>(null);
 
+  const [pinMode, setPinMode] = useState<
+    "none" | "origin" | "destination" | "extra"
+  >("none");
+
   // Viewbox para Nuevo León / Monterrey (LonMin, LatMin, LonMax, LatMax)
   const viewbox = "-100.5,25.5,-99.9,26.5";
 
@@ -257,6 +261,32 @@ export default function DriverPage() {
     setExtraCoords(position);
     setExtraResults([]);
     setExtraLocation(label);
+  };
+
+  const handleMapClick = (lat: number, lng: number) => {
+    if (pinMode === "none") return;
+    if (pinMode === "origin") {
+      const pos: [number, number] = [lat, lng];
+      if (coords) setCoords({ ...coords, start: pos });
+      else setCoords({ start: pos, end: pos });
+      setOrigin(`Pinned ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setOriginResults([]);
+    }
+    if (pinMode === "destination") {
+      const pos: [number, number] = [lat, lng];
+      if (coords) setCoords({ ...coords, end: pos });
+      else setCoords({ start: pos, end: pos });
+      setDestination(`Pinned ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setDestinationResults([]);
+    }
+    if (pinMode === "extra") {
+      const pos: [number, number] = [lat, lng];
+      setExtraCoords(pos);
+      setExtraLocation(`Pinned ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+      setExtraResults([]);
+    }
+    // after placing one pin, turn off pin mode
+    setPinMode("none");
   };
 
   // distance from point to segment (meters)
@@ -613,6 +643,36 @@ export default function DriverPage() {
                 }
               />
             </div>
+
+            <div className="mt-2 flex gap-2">
+              <button
+                className={`rounded px-3 py-1 text-sm ${pinMode === "origin" ? "bg-red-600 text-white" : "border bg-white"}`}
+                onClick={() =>
+                  setPinMode(pinMode === "origin" ? "none" : "origin")
+                }
+              >
+                Pin Origen
+              </button>
+              <button
+                className={`rounded px-3 py-1 text-sm ${pinMode === "destination" ? "bg-red-600 text-white" : "border bg-white"}`}
+                onClick={() =>
+                  setPinMode(pinMode === "destination" ? "none" : "destination")
+                }
+              >
+                Pin Destino
+              </button>
+              <button
+                className={`rounded px-3 py-1 text-sm ${pinMode === "extra" ? "bg-red-600 text-white" : "border bg-white"}`}
+                onClick={() =>
+                  setPinMode(pinMode === "extra" ? "none" : "extra")
+                }
+              >
+                Pin Extra
+              </button>
+              <div className="ml-2 self-center text-sm text-gray-600">
+                Modo pin: {pinMode}
+              </div>
+            </div>
             <div className="relative z-10 mt-2">
               <input
                 ref={extraRef}
@@ -644,6 +704,8 @@ export default function DriverPage() {
               generatedStops={generatedStops ?? undefined}
               extraRoute={extraRoute ?? undefined}
               highlightPickupId={highlightPickupId ?? undefined}
+              extraCoords={extraCoords ?? undefined}
+              onMapClick={handleMapClick}
             />
           </div>
         </div>
