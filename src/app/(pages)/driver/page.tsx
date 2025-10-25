@@ -112,6 +112,7 @@ export default function DriverPage() {
   const [destinationResults, setDestinationResults] = useState<
     NominatimResult[]
   >([]);
+  const [extraResults, setExtraResults] = useState<NominatimResult[]>([]);
   const [coords, setCoords] = useState<{
     start: [number, number];
     end: [number, number];
@@ -130,6 +131,7 @@ export default function DriverPage() {
 
   const originRef = useRef<HTMLInputElement | null>(null);
   const destRef = useRef<HTMLInputElement | null>(null);
+  const extraRef = useRef<HTMLInputElement | null>(null);
 
   // Viewbox para Nuevo León / Monterrey (LonMin, LatMin, LonMax, LatMax)
   const viewbox = "-100.5,25.5,-99.9,26.5";
@@ -201,6 +203,14 @@ export default function DriverPage() {
 
   const [bufferMeters, setBufferMeters] = useState<number>(1500);
 
+  // Third / extra location (rider) and its route to the chosen pickup
+  const [extraLocation, setExtraLocation] = useState<string>("");
+  const [extraCoords, setExtraCoords] = useState<[number, number] | null>(null);
+  const [extraRoute, setExtraRoute] = useState<[number, number][] | null>(null);
+  const [highlightPickupId, setHighlightPickupId] = useState<string | null>(
+    null,
+  );
+
   const pickupInput = coords
     ? {
         fromLat: coords.start[0],
@@ -232,6 +242,173 @@ export default function DriverPage() {
     } catch (err) {
       console.error(err);
       toast.error("Error al buscar puntos de recogida");
+    }
+  };
+
+  // Extra location search (like origin/destination)
+  const handleExtraSearch = async () => {
+    if (!extraLocation) return setExtraResults([]);
+    const results = await searchPlace(extraLocation);
+    setExtraResults(results);
+  };
+
+  const selectExtra = (lat: string, lon: string, label: string) => {
+    const position: [number, number] = [parseFloat(lat), parseFloat(lon)];
+    setExtraCoords(position);
+    setExtraResults([]);
+    setExtraLocation(label);
+  };
+
+  // distance from point to segment (meters)
+  function pointToSegmentDistanceMeters(
+    px: number,
+    py: number,
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+  ) {
+    // compute projection of P onto AB in lat/lng space, then compute haversine
+    const toRad = (v: number) => (v * Math.PI) / 180;
+    const latFactor = (lat: number) => Math.cos(toRad(lat));
+
+    // Convert to simple euclidean using degrees scaled by latitude
+    const mx = (v: number) => v;
+    const my = (v: number) => v * latFactor((ay + by) / 2);
+
+    const pax = mx(px),
+      pay = my(py);
+    const aax = mx(ax),
+      aay = my(ay);
+    const bbx = mx(bx),
+      bby = my(by);
+
+    const vx = bbx - aax;
+    const vy = bby - aay;
+    const wx = pax - aax;
+    const wy = pay - aay;
+    const c1 = vx * wx + vy * wy;
+    const c2 = vx * vx + vy * vy;
+    let t = c2 === 0 ? 0 : c1 / c2;
+    t = Math.max(0, Math.min(1, t));
+    const projx = aax + vx * t;
+    const projy = aay + vy * t;
+
+    // distance in degrees -> convert to meters using haversine
+    // convert proj back to lat/lng: projx (lon) and projy scaled lon; we need approximation: find proj lat by linear interpolation
+    // We'll compute distance between P and point linearly approximated on original segment using t
+    const projLat = ay + (by - ay) * t;
+    const projLng = ax + (bx - ax) * t;
+
+    return haversineMeters(py, px, projLat, projLng);
+  }
+
+  // Find nearest pickup (from pickupQuery data and generatedStops) to extraCoords.
+  const handleFindNearestPickupFromExtra = async () => {
+    setExtraRoute(null);
+    setHighlightPickupId(null);
+    if (!extraCoords)
+      return toast.error("Selecciona la ubicación extra primero");
+    // collect candidates
+    const candidates: { id: string; lat: number; lng: number }[] = [];
+    if (pickupQuery.data && pickupQuery.data.length > 0) {
+      for (const p of pickupQuery.data) {
+        if (!p) continue;
+        candidates.push({
+          id: String(p.id),
+          lat: Number(p.lat),
+          lng: Number(p.lng),
+        });
+      }
+    }
+    if (generatedStops) {
+      for (const s of generatedStops) {
+        candidates.push({ id: s.id, lat: s.lat, lng: s.lng });
+      }
+    }
+    if (candidates.length === 0)
+      return toast.error(
+        "No hay puntos de recogida cargados. Genera o busca puntos primero.",
+      );
+
+    // compute distance from extraCoords to each candidate; prefer ones close to the main route if route exists
+    const scored = candidates.map((c) => {
+      const dToExtra = haversineMeters(
+        extraCoords[0],
+        extraCoords[1],
+        c.lat,
+        c.lng,
+      );
+      let dToRoute = Infinity;
+      if (route && route.length >= 2) {
+        for (let i = 0; i < route.length - 1; i++) {
+          const a = route[i]!;
+          const b = route[i + 1]!;
+          const segDist = pointToSegmentDistanceMeters(
+            c.lng,
+            c.lat,
+            a[1],
+            a[0],
+            b[1],
+            b[0],
+          );
+          if (segDist < dToRoute) dToRoute = segDist;
+        }
+      }
+      return { ...c, dToExtra, dToRoute };
+    });
+
+    // prefer candidates that are within bufferMeters of route; otherwise pick by proximity to extra
+    const nearRoute = scored.filter((s) => s.dToRoute <= bufferMeters);
+    let chosen = null;
+    if (nearRoute.length > 0) {
+      chosen = nearRoute.reduce((a, b) => (a.dToExtra < b.dToExtra ? a : b));
+    } else {
+      chosen = scored.reduce((a, b) => (a.dToExtra < b.dToExtra ? a : b));
+    }
+
+    if (!chosen) return toast.error("No se encontró un punto apropiado");
+
+    // request OSRM route from extraCoords to chosen
+    try {
+      const res = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${extraCoords[1]},${extraCoords[0]};${chosen.lng},${chosen.lat}?overview=full&geometries=geojson`,
+      );
+      if (!res.ok) {
+        // fallback: just draw straight line
+        setExtraRoute([
+          [extraCoords[0], extraCoords[1]],
+          [chosen.lat, chosen.lng],
+        ]);
+        setHighlightPickupId(chosen.id);
+        toast.success("Trazado aproximado (OSRM no respondió)");
+        return;
+      }
+      const data = (await res.json()) as OSRMResponse;
+      const r = data.routes?.[0];
+      if (!r) {
+        setExtraRoute([
+          [extraCoords[0], extraCoords[1]],
+          [chosen.lat, chosen.lng],
+        ]);
+        setHighlightPickupId(chosen.id);
+        toast.success("Trazado aproximado");
+        return;
+      }
+      const poly = r.geometry.coordinates.map(
+        ([lon, lat]) => [lat, lon] as [number, number],
+      );
+      setExtraRoute(poly);
+      setHighlightPickupId(chosen.id);
+      toast.success("Ruta desde la ubicación al punto de recogida generada");
+    } catch (err) {
+      console.error(err);
+      setExtraRoute([
+        [extraCoords[0], extraCoords[1]],
+        [chosen.lat, chosen.lng],
+      ]);
+      setHighlightPickupId(chosen.id);
+      toast.success("Trazado local generado");
     }
   };
 
@@ -436,6 +613,22 @@ export default function DriverPage() {
                 }
               />
             </div>
+            <div className="relative z-10 mt-2">
+              <input
+                ref={extraRef}
+                value={extraLocation}
+                onChange={(e) => setExtraLocation(e.target.value)}
+                onKeyUp={handleExtraSearch}
+                placeholder="Ubicación extra (ej. pasajero)"
+                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
+              />
+              <SuggestionPortal
+                anchorRef={extraRef}
+                items={extraResults}
+                visible={extraResults.length > 0}
+                onSelect={(it) => selectExtra(it.lat, it.lon, it.display_name)}
+              />
+            </div>
           </div>
 
           <div className="z-0 mt-4 h-[70vh] w-full">
@@ -449,6 +642,8 @@ export default function DriverPage() {
                   : undefined
               }
               generatedStops={generatedStops ?? undefined}
+              extraRoute={extraRoute ?? undefined}
+              highlightPickupId={highlightPickupId ?? undefined}
             />
           </div>
         </div>
@@ -531,6 +726,14 @@ export default function DriverPage() {
               }}
             >
               Generar paradas
+            </button>
+            <button
+              className="rounded-md border border-gray-300 bg-white px-4 py-2"
+              onClick={() => {
+                void handleFindNearestPickupFromExtra();
+              }}
+            >
+              Ir al punto más cercano
             </button>
             <button
               className="rounded-md border border-gray-300 bg-white px-4 py-2"
