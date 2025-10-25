@@ -66,7 +66,7 @@ export default function Navbar() {
   const pathname = usePathname();
 
   // 1. Mostrar navbar SOLO en estas rutas
-  const visibleOn = ["/home", "/maps", "/user"];
+  const visibleOn = ["/rider", "/driver", "/user"];
   const shouldShow = visibleOn.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
@@ -114,11 +114,15 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-r from-black/60 to-red-600/60 backdrop-blur-md text-white shadow-xl">
+    <nav
+      className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-r from-black/60 to-red-600/60 backdrop-blur-md text-white shadow-xl"
+      // safe-area inset to avoid notch overlap on some phones
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid h-14 grid-cols-3 items-center">
-          <NavButton href="/home" label="Inicio" Icon={HomeIcon} />
-          <NavButton href="/maps" label="Viajes" Icon={TripIcon} />
+          {/*<NavButton href="/rider" label="Inicio" Icon={HomeIcon} />*/}
+          <NavButton href="/driver" label="Viajes" Icon={TripIcon} />
           <NavButton href="/user" label="Usuario" Icon={UserIcon} />
         </div>
       </div>
