@@ -10,7 +10,7 @@ generator client {
 /// Usuarios ya existen en tu sistema SSO; aquí asumimos que
 /// tienes una tabla User sincronizada (o la referenciamos por id).
 model User {
-    id               String            @id
+    id               String            @id @default(cuid())
     email            String            @unique
     name             String?
     // Relations required by next-auth / Prisma adapter
@@ -23,6 +23,8 @@ model User {
     createdAt        DateTime          @default(now())
     updatedAt        DateTime          @updatedAt
     rides            Ride[]
+    // generated stops created by this user
+    generatedStops   GeneratedStop[]
 }
 
 /// Sedes del banco (orígenes/destinos frecuentes)
@@ -261,4 +263,19 @@ model VerificationToken {
     expires    DateTime
 
     @@unique([identifier, token])
+}
+
+/// Generated stops created by drivers (suggested stops along a route)
+model GeneratedStop {
+    id        String   @id @default(cuid())
+    label     String?
+    lat       Decimal  @db.Decimal(9, 6)
+    lng       Decimal  @db.Decimal(9, 6)
+    routeHash String? // optional grouping identifier for the route
+    creatorId String? // optional user who generated the stops
+    creator   User?    @relation(fields: [creatorId], references: [id])
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([creatorId])
 }
