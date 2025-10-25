@@ -6,8 +6,9 @@ export default function Home() {
     { href: "/availability", label: "Availability (OneOff / Recurring)" },
     { href: "/trips", label: "Trips (Create / Discover)" },
     { href: "/bookings", label: "Bookings (My / Decide)" },
-    { href: "/auth", label: "Login / Registro (frontend demo)" },
+    { href: "/inicio", label: "Login / Registro (frontend demo)" },
     { href: "/driver", label: "Driver Page (Map Component)" },
+    { href: "/user", label: "User Page (My Trips)" },
   ];
 
   return (

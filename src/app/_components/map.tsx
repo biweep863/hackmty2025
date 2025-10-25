@@ -3,7 +3,8 @@
 
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { api } from "~/trpc/react";
 import { toast } from "react-hot-toast";
 
@@ -32,6 +33,60 @@ type OSRMResponse = {
   routes?: OSRMRoute[];
 };
 
+function SuggestionPortal<T extends { display_name: string }>(props: {
+  anchorRef: React.RefObject<HTMLElement | null>;
+  items: T[];
+  onSelect: (item: T) => void;
+  visible: boolean;
+}) {
+  const { anchorRef, items, onSelect, visible } = props;
+  const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!visible) return setPos(null);
+    const el = anchorRef.current;
+    if (!el) return setPos(null);
+    const rect = el.getBoundingClientRect();
+    setPos({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, width: rect.width });
+
+    const handleResize = () => {
+      const r = el.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY, left: r.left + window.scrollX, width: r.width });
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleResize, true);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleResize, true);
+    };
+  }, [anchorRef, visible, items]);
+
+  if (!visible || !pos) return null;
+
+  const list = (
+    <ul
+      className="bg-white border max-h-48 overflow-y-auto shadow-lg"
+      style={{ position: "absolute", top: pos.top, left: pos.left, width: pos.width, zIndex: 99999 }}
+    >
+      {items.map((it, i) => (
+        <li
+          key={i}
+          className="p-2 hover:bg-gray-100 cursor-pointer"
+          onMouseDown={(e) => {
+            // prevent input blur before click
+            e.preventDefault();
+            onSelect(it);
+          }}
+        >
+          {it.display_name}
+        </li>
+      ))}
+    </ul>
+  );
+
+  return createPortal(list, document.body);
+}
+
 export default function Map() {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -43,8 +98,16 @@ export default function Map() {
   const [route, setRoute] = useState<[number, number][] | null>(null);
   const [distance, setDistance] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);
+  const [price, setPrice] = useState<number | null>(null);
 
   const ride = api.carpooler.pushRide.useMutation();
+
+  // Banorte brand colors
+  const primary = "#e60012";
+  const primaryDark = "#c30010";
+
+  const originRef = useRef<HTMLInputElement | null>(null);
+  const destRef = useRef<HTMLInputElement | null>(null);
 
   // Viewbox para Nuevo León / Monterrey (LonMin, LatMin, LonMax, LatMax)
   const viewbox = "-100.5,25.5,-99.9,26.5";
@@ -70,20 +133,20 @@ export default function Map() {
     setDestinationResults(results);
   };
 
-  const selectOrigin = (lat: string, lon: string) => {
+  const selectOrigin = (lat: string, lon: string, label: string) => {
     const position: [number, number] = [parseFloat(lat), parseFloat(lon)];
     if (coords) setCoords({ ...coords, start: position });
     else setCoords({ start: position, end: position });
     setOriginResults([]);
-    setOrigin("");
+    setOrigin(label);
   };
 
-  const selectDestination = (lat: string, lon: string) => {
+  const selectDestination = (lat: string, lon: string, label: string) => {
     const position: [number, number] = [parseFloat(lat), parseFloat(lon)];
     if (coords) setCoords({ ...coords, end: position });
     else setCoords({ start: position, end: position });
     setDestinationResults([]);
-    setDestination("");
+    setDestination(label);
   };
 
   const tileLayerProps: React.ComponentProps<typeof TileLayer> = {
@@ -95,12 +158,15 @@ export default function Map() {
     const toastId = toast.loading("Enviando ruta...");
     try {
       await ride.mutateAsync({
+        origin,
+        destination,
         latStart: coords.start[0],
         lngStart: coords.start[1],
         latEnd: coords.end[0],
         lngEnd: coords.end[1],
         distanceKm: distance ?? 0,
-        durationMin: duration ?? 0, 
+        durationMin: duration ?? 0,   
+        price: price ?? 0,
       });
       toast.success("Ruta enviada con éxito!", { id: toastId });
     } catch (error) {
@@ -131,7 +197,8 @@ export default function Map() {
       }
       setRoute(routeData.geometry.coordinates.map(([lon, lat]) => [lat, lon]));
       setDistance(routeData.distance / 1000);
-      setDuration(routeData.distance / 1000 * 4)
+      setDuration(routeData.distance / 1000 * 4);
+      setPrice(routeData.distance / 1000 * 5);
     };
     void fetchRoute();
   }, [coords]);
@@ -150,60 +217,55 @@ export default function Map() {
   }, []);
 
   return (
-    <div className="flex flex-col items-center gap-4 p-4">
-      <h3 className="text-xl font-bold">Distancia: {distance?.toFixed(2)} km</h3>
-      <h3 className="text-xl font-bold">Duración: {duration?.toFixed(2)} min</h3>
-      <div className="flex gap-2 w-full max-w-lg relative">
-        <div className="flex-1 relative z-20">
-          <input
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            onKeyUp={handleOriginSearch}
-            placeholder="Origen"
-            className="w-full border rounded p-2"
-          />
-          {originResults.length > 0 && (
-            <ul className="absolute top-full left-0 bg-white border w-full max-h-48 overflow-y-auto shadow-lg">
-              {originResults.map((r, i) => (
-                <li
-                  key={i}
-                  className="p-2 hover:bg-gray-200 cursor-pointer"
-                  onClick={() => selectOrigin(r.lat, r.lon)}
-                >
-                  {r.display_name}
-                </li>
-              ))}
-            </ul>
-          )}
+    <div className="p-6 max-w-5xl mx-auto">
+      <header className="rounded-md mb-6 overflow-hidden shadow-md" style={{ background: primary }}>
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-white">Crear ruta</h1>
+          <p className="text-sm text-white/90 mt-1">Marca inicio y destino en el mapa y comparte tu ruta.</p>
         </div>
+      </header>
 
-        <div className="flex-1 relative z-20">
-          <input
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            onKeyUp={handleDestinationSearch}
-            placeholder="Destino"
-            className="w-full border rounded p-2"
-          />
-          {destinationResults.length > 0 && (
-            <ul className="absolute top-full left-0 bg-white border w-full max-h-48 overflow-y-auto shadow-lg">
-              {destinationResults.map((r, i) => (
-                <li
-                  key={i}
-                  className="p-2 hover:bg-gray-200 cursor-pointer"
-                  onClick={() => selectDestination(r.lat, r.lon)}
-                >
-                  {r.display_name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="md:col-span-2">
+          <div className="flex gap-2 w-full max-w-full relative">
+            <div className="flex-1 relative z-50">
+              <input
+                ref={originRef}
+                value={origin}
+                onChange={(e) => setOrigin(e.target.value)}
+                onKeyUp={handleOriginSearch}
+                placeholder="Origen"
+                className="w-full border border-gray-300 rounded p-2 shadow-sm focus:ring-2 focus:ring-red-200"
+              />
+              <SuggestionPortal
+                anchorRef={originRef}
+                items={originResults}
+                visible={originResults.length > 0}
+                onSelect={(it) => selectOrigin(it.lat, it.lon, it.display_name)}
+              />
+            </div>
 
-      <div className="w-full h-[80vh] z-0">
+            <div className="flex-1 relative z-20">
+              <input
+                ref={destRef}
+                value={destination}
+                onChange={(e) => setDestination(e.target.value)}
+                onKeyUp={handleDestinationSearch}
+                placeholder="Destino"
+                className="w-full border border-gray-300 rounded p-2 shadow-sm focus:ring-2 focus:ring-red-200"
+              />
+              <SuggestionPortal
+                anchorRef={destRef}
+                items={destinationResults}
+                visible={destinationResults.length > 0}
+                onSelect={(it) => selectDestination(it.lat, it.lon, it.display_name)}
+              />
+            </div>
+          </div>
+
+      <div className="w-full h-[70vh] z-0 mt-4">
         <MapContainer
-          center={mtyPos as [number, number]} // Monterrey por defecto
+          center={mtyPos as [number, number]} // Monterrey
           zoom={12}
           style={{ height: "100%", width: "100%" }}
         >
@@ -222,14 +284,46 @@ export default function Map() {
               </Popup>
             </Marker>
           )}
-          {route?.length ? <Polyline positions={route} pathOptions={{ color: "blue" }} /> : null}
+          {route?.length ? <Polyline positions={route} pathOptions={{ color: primary }} /> : null}
         </MapContainer>
+          </div>
+        </div>
+
+        <aside className="space-y-4">
+          <div className="p-4 bg-white border rounded shadow-sm">
+            <div className="text-sm text-gray-500">Distancia</div>
+            <div className="text-xl font-semibold">{distance ? distance.toFixed(2) + ' km' : '—'}</div>
+          </div>
+
+          <div className="p-4 bg-white border rounded shadow-sm">
+            <div className="text-sm text-gray-500">Duración</div>
+            <div className="text-xl font-semibold">{duration ? duration.toFixed(2) + ' min' : '—'}</div>
+          </div>
+
+          <div className="p-4 bg-white border rounded shadow-sm">
+            <div className="text-sm text-gray-500">Precio</div>
+            <div className="text-xl font-semibold">{price ? '$' + price.toFixed(2) : '—'}</div>
+          </div>
+
+          <div className="p-4 flex gap-2">
+            <button
+              className="flex-1 px-4 py-2 rounded-md text-white font-medium shadow"
+              style={{ background: primary }}
+              onMouseOver={(e) => (e.currentTarget.style.background = primaryDark)}
+              onMouseOut={(e) => (e.currentTarget.style.background = primary)}
+              onClick={sendRide}
+            >
+              Enviar ruta
+            </button>
+            <button
+              className="px-4 py-2 rounded-md border border-gray-300 bg-white"
+              onClick={() => { setOrigin(''); setDestination(''); setCoords(null); setRoute(null); setDistance(null); setDuration(null); setPrice(null); }}
+            >
+              Limpiar
+            </button>
+          </div>
+        </aside>
       </div>
-      <button
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer"
-        onClick={sendRide}
-        
-      >Enviar Ruta</button>
     </div>
   );
 }
