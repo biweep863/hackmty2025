@@ -7,6 +7,7 @@ import {
   Polyline,
   Popup,
   CircleMarker,
+  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -18,6 +19,8 @@ export default function Map({
   generatedStops,
   extraRoute,
   highlightPickupId,
+  extraCoords,
+  onMapClick,
 }: {
   coords?: { start: [number, number]; end: [number, number] };
   route?: [number, number][];
@@ -42,7 +45,21 @@ export default function Map({
     | null;
   extraRoute?: [number, number][] | null;
   highlightPickupId?: string | null;
+  extraCoords?: [number, number] | null;
+  onMapClick?: (lat: number, lng: number) => void;
 }) {
+  function MapClickHandler({
+    onClick,
+  }: {
+    onClick: (lat: number, lng: number) => void;
+  }) {
+    useMapEvents({
+      click(e) {
+        onClick(e.latlng.lat, e.latlng.lng);
+      },
+    });
+    return null;
+  }
   const mtyPos = [25.6866, -100.3161];
 
   const tileLayerProps: React.ComponentProps<typeof TileLayer> = {
@@ -82,6 +99,15 @@ export default function Map({
           positions={extraRoute}
           pathOptions={{ color: "#00AA00", dashArray: "6 6" }}
         />
+      ) : null}
+      {onMapClick ? <MapClickHandler onClick={onMapClick} /> : null}
+      {/** extraCoords marker for the third pin */}
+      {/** render extraCoords if passed */}
+      {/** placed before pickup points so it appears on top */}
+      {typeof (extraCoords as any) !== "undefined" && extraCoords ? (
+        <Marker position={extraCoords}>
+          <Popup>Ubicación extra</Popup>
+        </Marker>
       ) : null}
       {pickupPoints?.map((p) => (
         <Marker key={p.id} position={[p.lat, p.lng]}>
