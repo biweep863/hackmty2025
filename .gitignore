@@ -8,6 +8,9 @@
 # testing
 /coverage
 
+# variables
+user.json
+
 # database
 /prisma/db.sqlite
 /prisma/db.sqlite-journal
