@@ -115,13 +115,12 @@ export default function Navbar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 z-50 w-full bg-gradient-to-r from-black/60 to-red-600/60 backdrop-blur-md text-white shadow-xl"
-      // safe-area inset to avoid notch overlap on some phones
+      className="fixed bottom-0 left-0 z-[2000] w-full bg-gradient-to-r from-black/60 to-red-600/60 backdrop-blur-md text-white shadow-xl"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="grid h-14 grid-cols-3 items-center">
-          {/*<NavButton href="/rider" label="Inicio" Icon={HomeIcon} />*/}
+          <NavButton href="/rider" label="Inicio" Icon={HomeIcon} />
           <NavButton href="/driver" label="Viajes" Icon={TripIcon} />
           <NavButton href="/user" label="Usuario" Icon={UserIcon} />
         </div>
