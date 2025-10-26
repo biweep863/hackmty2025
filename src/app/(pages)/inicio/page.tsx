@@ -35,7 +35,7 @@ export default function AuthPage() {
       console.error(err);
       setStatus("Error al enviar. Revisa la consola.");
     } finally {
-      router.push("/rider");
+      router.push("/user/token-entry");
       setLoading(false);
     }
   }
