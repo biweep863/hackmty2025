@@ -2,8 +2,9 @@
 
 import { api } from "~/trpc/react";
 import UserCard from "~/app/_components/UserCard";
-import React, { useEffect, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 export default function UserPage() {
   const { data: session, status } = useSession();
@@ -15,6 +16,20 @@ export default function UserPage() {
   const [name, setName] = useState<string | null>(null);
   const [phone, setPhone] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
+  const getEmail = api.register.getEmail.useQuery();
+  const userEmail = api.register.getUser.useQuery(getEmail.data ?? "");
+  const pathname = usePathname();
+
+  useEffect(() => {
+      setName("");
+      setEmail("");
+      getEmail.refetch();
+  }, [pathname]);
+
+  useEffect(() => {
+    setName(userEmail.data?.name ?? null);
+    setEmail(userEmail.data?.email ?? null);
+  }, [userEmail.data]);
 
   // Banorte sandbox link state
   const [banorteLinked, setBanorteLinked] = useState<boolean>(false);
@@ -54,9 +69,7 @@ export default function UserPage() {
       const stored = localStorage.getItem("demo_profile");
       if (stored) {
         const p = JSON.parse(stored) as Partial<{ name: string; phone: string; email: string }>;
-        setName(p.name ?? null);
         setPhone(p.phone ?? null);
-        setEmail(p.email ?? null);
       }
       const b = localStorage.getItem("demo_banorte_linked");
       if (b === "true") setBanorteLinked(true);
@@ -85,8 +98,8 @@ export default function UserPage() {
   // initialize fields from session or demo values
   useEffect(() => {
     const display = session?.user as UserLike | undefined;
-    setName((prev) => prev ?? display?.name ?? "Camila Tite");
-    setEmail((prev) => prev ?? display?.email ?? "camila@gmail.com");
+    setName(userEmail.data?.name ?? "");
+    setEmail(userEmail.data?.email ?? "");
     setPhone((prev) => prev ?? "+52 81 1234 5678");
   }, [session]);
 
@@ -121,8 +134,8 @@ export default function UserPage() {
   // allow preview: if no session, use demo placeholder so you can see the design
   type UserLike = { name?: string | null; email?: string | null; id?: string; image?: string | null };
   const displayUser: UserLike = (session?.user as UserLike) ?? {
-    name: name ?? "Camila Tite",
-    email: email ?? "maria@correo.com",
+    name: userEmail.data?.name ?? "",
+    email: userEmail.data?.email ?? "",
     id: "demo-000",
     image: undefined,
   };
