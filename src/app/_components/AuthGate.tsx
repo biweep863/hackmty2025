@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
+import Loading from "~/app/_components/Loading";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -53,5 +54,6 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }, [status, pathname, router, publicExact, publicPrefixes]);
 
   // while determining session, render children (or a small placeholder)
+  if (status === "loading") return <Loading />;
   return <>{children}</>;
 }

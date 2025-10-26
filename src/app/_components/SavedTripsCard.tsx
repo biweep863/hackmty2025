@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Map from "./map";
+import Loading from "./Loading";
 import { api } from "~/trpc/react";
 
 interface TripsListProps {
@@ -21,13 +22,6 @@ type OSRMResponse = {
   routes?: OSRMRoute[];
 };
 
-function Loading() {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-red-600"></div>
-    </div>
-  );
-}
 
 export default function TripsList({ trips, myTrips, userEmail }: TripsListProps) {
   const trpcCtx = api.useContext();
@@ -117,7 +111,7 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
                   if (coords) getRoute(coords);
                   setShowMap(true);
                 }}
-                className="p-4 border rounded-md shadow-sm hover:shadow-lg transition-shadow bg-white"
+                className="p-4 rounded-xl shadow-sm hover:shadow-lg transition-shadow bg-white card-hover"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>

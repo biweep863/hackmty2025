@@ -2,6 +2,7 @@
 
 import { api } from "~/trpc/react";
 import React, { use, useEffect, useState } from "react";
+import Loading from "~/app/_components/Loading";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";
 
@@ -125,7 +126,7 @@ export default function UserPage() {
   if (status === "loading") {
     return (
       <div className="p-6 max-w-3xl mx-auto">
-        <p>Cargando sesión…</p>
+        <Loading />
       </div>
     );
   }

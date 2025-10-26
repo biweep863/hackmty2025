@@ -3,6 +3,7 @@
 import React from "react";
 import { api } from "~/trpc/react";
 import TripsList from "~/app/_components/SavedTripsCard";
+import Loading from "~/app/_components/Loading";
 
 export default function TripsPage() {
   const { data: trips, isLoading, error } = api.trips.getTrips.useQuery();
@@ -16,7 +17,11 @@ export default function TripsPage() {
   const primary = "#e60012";
   const primaryDark = "#c30010";
 
-  if (isLoading) return <div className="p-6">Cargando viajes...</div>;
+  if (isLoading) return (
+    <div className="p-6">
+      <Loading />
+    </div>
+  );
   if (error) return <div className="p-6 text-red-600">Error cargando viajes: {error.message}</div>;
 
   return (
