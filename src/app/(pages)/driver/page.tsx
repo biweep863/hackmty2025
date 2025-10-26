@@ -637,14 +637,16 @@ export default function DriverPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="mx-auto max-w-5xl p-6 font-poppins">
       <header
-        className="mb-6 overflow-hidden rounded-md shadow-md"
+        className="mb-6 overflow-hidden rounded-md shadow-md transform transition-transform duration-300 hover:scale-105"
         style={{ background: primary }}
       >
         <div className="p-6">
-          <h1 className="text-2xl font-bold text-white">Crear ruta</h1>
-          <p className="mt-1 text-sm text-white/90">
+          <h1 className="text-2xl font-bold text-white transition-all duration-300 hover:text-gray-200">
+            Crear ruta
+          </h1>
+          <p className="mt-1 text-sm text-white/90 transition-all duration-300 hover:text-gray-300">
             Marca inicio y destino en el mapa y comparte tu ruta.
           </p>
         </div>
@@ -659,7 +661,7 @@ export default function DriverPage() {
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
                 placeholder="Origen"
-                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
+                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200 transition-shadow duration-300 hover:shadow-md"
               />
               <SuggestionPortal
                 anchorRef={originRef}
@@ -676,7 +678,7 @@ export default function DriverPage() {
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 placeholder="Destino"
-                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
+                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200 transition-shadow duration-300 hover:shadow-md"
               />
               <SuggestionPortal
                 anchorRef={destRef}
@@ -691,7 +693,7 @@ export default function DriverPage() {
 
             <div className="mt-2 flex gap-2">
               <button
-                className={`rounded px-3 py-1 text-sm ${pinMode === "origin" ? "bg-red-600 text-white" : "border bg-white"}`}
+                className={`rounded px-3 py-1 text-sm transform transition-transform duration-300 hover:scale-105 shadow-md hover:shadow-lg ${pinMode === "origin" ? "bg-red-600 text-white" : "bg-white"}`}
                 onClick={() =>
                   setPinMode(pinMode === "origin" ? "none" : "origin")
                 }
@@ -699,7 +701,7 @@ export default function DriverPage() {
                 Pin Origen
               </button>
               <button
-                className={`rounded px-3 py-1 text-sm ${pinMode === "destination" ? "bg-red-600 text-white" : "border bg-white"}`}
+                className={`rounded px-3 py-1 text-sm transform transition-transform duration-300 hover:scale-105 shadow-md hover:shadow-lg ${pinMode === "destination" ? "bg-red-600 text-white" : "bg-white"}`}
                 onClick={() =>
                   setPinMode(pinMode === "destination" ? "none" : "destination")
                 }
@@ -712,7 +714,7 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div className="z-0 mt-4 h-[60vh] w-full overflow-hidden rounded-md md:h-[72vh]">
+          <div className="z-0 mt-4 h-[60vh] w-full overflow-hidden rounded-md md:h-[72vh] transform transition-transform duration-300 hover:scale-105">
             <Map
               coords={coords ?? undefined}
               route={route ?? undefined}
@@ -729,7 +731,7 @@ export default function DriverPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded border bg-white p-4 shadow-sm">
+          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
             <div className="space-y-3">
               <div>
                 <div className="text-sm text-gray-500">Distancia</div>
@@ -752,10 +754,10 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div className="rounded border bg-white p-4 shadow-sm">
+          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
             <div className="grid grid-cols-1 gap-2">
               <button
-                className="w-full rounded-md bg-red-600 px-4 py-2 font-medium text-white shadow hover:bg-red-700"
+                className="w-full rounded-md bg-red-600 px-4 py-2 font-medium text-white shadow hover:bg-red-700 transform transition-transform duration-300 hover:scale-105"
                 onClick={sendRide}
               >
                 Enviar ruta
@@ -763,7 +765,7 @@ export default function DriverPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
                   onClick={() => {
                     setOrigin("");
                     setDestination("");
@@ -777,14 +779,13 @@ export default function DriverPage() {
                   Limpiar
                 </button>
                 <button
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
                   onClick={handleFindPickupPoints}
                 >
                   Buscar puntos
                 </button>
-                {/* Debug button removed in cleaned version */}
                 <button
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
                   onClick={handleGenerateStops}
                 >
                   Generar paradas
@@ -793,7 +794,7 @@ export default function DriverPage() {
 
               <div className="flex flex-col gap-2">
                 <button
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
+                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
                   onClick={() => void handleCreateTemplate()}
                 >
                   Guardar plantilla
@@ -803,7 +804,7 @@ export default function DriverPage() {
                     type="datetime-local"
                     value={departureAtInput}
                     onChange={(e) => setDepartureAtInput(e.target.value)}
-                    className="flex-1 rounded border p-1"
+                    className="flex-1 rounded bg-white p-1 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -811,37 +812,20 @@ export default function DriverPage() {
                     type="number"
                     value={seatsTotalInput}
                     onChange={(e) => setSeatsTotalInput(Number(e.target.value))}
-                    className="w-20 rounded border p-1"
+                    className="w-20 rounded bg-white p-1 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
                     min={1}
                   />
-                  <button
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2"
-                    onClick={() => void handleCreateTrip()}
-                  >
-                    Crear Trip
-                  </button>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-2">
-                <button
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2"
-                  onClick={() => {
-                    handleClearStops();
-                  }}
-                >
-                  Limpiar paradas
-                </button>
               </div>
             </div>
           </div>
 
-          <div className="rounded border bg-white p-4 shadow-sm">
+          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
             <label className="text-sm text-gray-600">Radio (m)</label>
             <select
               value={bufferMeters}
               onChange={(e) => setBufferMeters(Number(e.target.value))}
-              className="mt-2 w-full rounded border-gray-200 p-2"
+              className="mt-2 w-full rounded bg-white p-2 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
             >
               <option value={500}>500</option>
               <option value={1000}>1000</option>
@@ -850,9 +834,8 @@ export default function DriverPage() {
             </select>
           </div>
 
-          {/* List pickup points if available */}
           {pickupQuery.data && pickupQuery.data.length > 0 && (
-            <div className="mt-4 rounded border bg-white p-3 shadow-sm">
+            <div className="mt-4 rounded bg-white p-3 shadow-md transform transition-transform duration-300 hover:scale-105">
               <div className="text-sm text-gray-500">Puntos encontrados</div>
               <ul className="mt-2 max-h-40 overflow-y-auto text-sm">
                 {(pickupQuery.data ?? []).filter(Boolean).map((p: any) => (
