@@ -97,11 +97,15 @@ function UserIcon({ className = "w-4 h-4" }: { className?: string }) {
 export default function Navbar() {
   const pathname = usePathname();
 
-  // Rutas donde SÍ aparece la navbar
-  const visibleOn = ["/rider", "/driver", "/trips", "/user"];
-  const shouldShow = visibleOn.some(
-    (route) => pathname === route || pathname.startsWith(route + "/")
-  );
+  // Rutas donde SÍ aparece la navbar.
+  // Nota: `/user` debe ser exacto (solo la página `/user`),
+  // mientras que otras rutas pueden tener sub-rutas.
+  const exactRoutes = ["/user"];
+  const prefixRoutes = ["/rider", "/driver", "/trips"];
+
+  const shouldShow =
+    exactRoutes.includes(pathname) ||
+    prefixRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"));
 
   if (!shouldShow) {
     return null;

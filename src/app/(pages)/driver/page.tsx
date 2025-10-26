@@ -38,8 +38,10 @@ function SuggestionPortal<T extends { display_name: string }>(props: {
   items: T[];
   onSelect: (item: T) => void;
   visible: boolean;
+  onClose?: () => void;
 }) {
   const { anchorRef, items, onSelect, visible } = props;
+  const containerRef = useRef<HTMLUListElement | null>(null);
   const [pos, setPos] = useState<{
     top: number;
     left: number;
@@ -73,10 +75,35 @@ function SuggestionPortal<T extends { display_name: string }>(props: {
     };
   }, [anchorRef, visible, items]);
 
+  // Close the suggestions when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!visible) return;
+    const handleDocDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node | null;
+      const anchor = anchorRef.current;
+      const portalEl = containerRef.current;
+      if (anchor && target && anchor.contains(target)) return;
+      if (portalEl && target && portalEl.contains(target)) return;
+      props.onClose?.();
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") props.onClose?.();
+    };
+    document.addEventListener("mousedown", handleDocDown);
+    document.addEventListener("touchstart", handleDocDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleDocDown);
+      document.removeEventListener("touchstart", handleDocDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [visible, anchorRef, props]);
+
   if (!visible || !pos) return null;
 
   const list = (
     <ul
+      ref={containerRef}
       className="max-h-48 overflow-y-auto border bg-white shadow-lg"
       style={{
         position: "absolute",
@@ -147,25 +174,57 @@ export default function DriverPage() {
   const viewbox = "-100.5,25.5,-99.9,26.5";
 
   const searchPlace = async (query: string): Promise<NominatimResult[]> => {
-    const res = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&viewbox=${viewbox}&bounded=1`,
-    );
-    if (!res.ok) return [];
-    const data = (await res.json()) as NominatimResult[];
-    return data;
+    // Restrict searches to Nuevo León (Mexico):
+    // - append the state/country to the query to bias results
+    // - use viewbox + bounded=1 to limit results to the rectangle
+    // - filter by countrycodes=mx to avoid other countries
+    const qParam = `${query}, Nuevo León, Mexico`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      qParam,
+    )}&format=json&limit=10&viewbox=${viewbox}&bounded=1&countrycodes=mx&accept-language=es&addressdetails=1`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const data = (await res.json()) as NominatimResult[];
+      return data;
+    } catch (err) {
+      console.error("Nominatim search failed:", err);
+      return [];
+    }
   };
 
-  const handleOriginSearch = async () => {
-    if (!origin) return setOriginResults([]);
-    const results = await searchPlace(origin);
-    setOriginResults(results);
-  };
+  // Debounced autocomplete: trigger search when the input changes and length >= 3
+  useEffect(() => {
+    const minLen = 3;
+    const delay = 300; // ms
+    if (!origin || origin.length < minLen) {
+      setOriginResults([]);
+      return;
+    }
+    const id = setTimeout(() => {
+      void (async () => {
+        const results = await searchPlace(origin);
+        setOriginResults(results);
+      })();
+    }, delay);
+    return () => clearTimeout(id);
+  }, [origin]);
 
-  const handleDestinationSearch = async () => {
-    if (!destination) return setDestinationResults([]);
-    const results = await searchPlace(destination);
-    setDestinationResults(results);
-  };
+  useEffect(() => {
+    const minLen = 3;
+    const delay = 300; // ms
+    if (!destination || destination.length < minLen) {
+      setDestinationResults([]);
+      return;
+    }
+    const id = setTimeout(() => {
+      void (async () => {
+        const results = await searchPlace(destination);
+        setDestinationResults(results);
+      })();
+    }, delay);
+    return () => clearTimeout(id);
+  }, [destination]);
 
   const selectOrigin = (lat: string, lon: string, label: string) => {
     const position: [number, number] = [parseFloat(lat), parseFloat(lon)];
@@ -599,7 +658,6 @@ export default function DriverPage() {
                 ref={originRef}
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
-                onKeyUp={handleOriginSearch}
                 placeholder="Origen"
                 className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
               />
@@ -608,6 +666,7 @@ export default function DriverPage() {
                 items={originResults}
                 visible={originResults.length > 0}
                 onSelect={(it) => selectOrigin(it.lat, it.lon, it.display_name)}
+                onClose={() => setOriginResults([])}
               />
             </div>
 
@@ -616,7 +675,6 @@ export default function DriverPage() {
                 ref={destRef}
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                onKeyUp={handleDestinationSearch}
                 placeholder="Destino"
                 className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200"
               />
@@ -627,6 +685,7 @@ export default function DriverPage() {
                 onSelect={(it) =>
                   selectDestination(it.lat, it.lon, it.display_name)
                 }
+                onClose={() => setDestinationResults([])}
               />
             </div>
 

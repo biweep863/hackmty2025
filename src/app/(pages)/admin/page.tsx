@@ -4,6 +4,7 @@ import Footer from "../../_components/footer";
 import { api } from "~/trpc/server";
 import AdminTabs from "../../_components/admin-tabs";
 import Sparkline from "../../_components/sparkline";
+import AdminTransactions from "../../_components/admin-transactions";
 
 function fmtMoney(cents: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
@@ -134,71 +135,7 @@ export default async function AdminPage() {
                 <h3 className="mb-2 text-sm font-semibold text-gray-800">
                   Recent Trips
                 </h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 text-left text-gray-600">
-                        <th className="px-3 py-2">Trip</th>
-                        <th className="px-3 py-2">Departure</th>
-                        <th className="px-3 py-2">Seats</th>
-                        <th className="px-3 py-2">Gross</th>
-                        <th className="px-3 py-2">Net</th>
-                        <th className="px-3 py-2">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {trips.map((t) => (
-                        <tr
-                          key={t.tripId}
-                          className="border-t hover:bg-gray-50"
-                        >
-                          <td className="px-3 py-2">
-                            <div className="font-medium text-gray-900">
-                              {t.fromLabel} → {t.toLabel}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {t.tripId}
-                            </div>
-                          </td>
-                          <td className="px-3 py-2 text-gray-700">
-                            {new Date(t.departureAt).toLocaleString()}
-                          </td>
-                          <td className="px-3 py-2 text-gray-700">
-                            {t.seatsTaken}/{t.seatsTotal}
-                          </td>
-                          <td className="px-3 py-2 text-gray-700">
-                            {fmtMoney(t.grossCents)}
-                          </td>
-                          <td className="px-3 py-2 text-gray-700">
-                            {fmtMoney(t.netCents)}
-                          </td>
-                          <td className="px-3 py-2">
-                            <span
-                              className="inline-flex rounded border px-2 py-0.5 text-xs"
-                              style={{
-                                background: "#fff2f2",
-                                color: "#c30010",
-                                borderColor: "#ffd6d6",
-                              }}
-                            >
-                              {t.status}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                      {trips.length === 0 && (
-                        <tr>
-                          <td
-                            colSpan={6}
-                            className="px-3 py-4 text-center text-gray-500"
-                          >
-                            No trips yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                <AdminTransactions items={trips} />
               </div>
             </div>
 
