@@ -906,7 +906,8 @@ export const routesRouter = createTRPCRouter({
       let localNearestDist = Infinity;
       for (let i = 0; i < limited.length; i++) {
         const p = limited[i];
-        const d = haversineMeters(lat, lng, p.lat, p.lng);
+        if (!p || p.lat == null || p.lng == null) continue;
+        const d = haversineMeters(lat, lng, Number(p.lat), Number(p.lng));
         if (d < localNearestDist) {
           localNearestDist = d;
           localNearestIndex = i;
@@ -926,6 +927,7 @@ export const routesRouter = createTRPCRouter({
           lines.push(`Points:`);
           for (let i = 0; i < limited.length; i++) {
             const p = limited[i];
+            if (!p || p.lat == null || p.lng == null) continue;
             const label = p.label ? ` - ${String(p.label)}` : "";
             lines.push(`${i + 1}) ${p.lat}, ${p.lng}${label}`);
           }
@@ -1005,7 +1007,7 @@ export const routesRouter = createTRPCRouter({
             // fallback: try to parse first integer in text
             if (geminiIndex == null) {
               const intMatch = textOut.match(/\b(\d+)\b/);
-              if (intMatch) geminiIndex = parseInt(intMatch[1], 10) - 1;
+              if (intMatch && intMatch[1]) geminiIndex = parseInt(intMatch[1], 10) - 1;
             }
           }
         } catch (e) {
