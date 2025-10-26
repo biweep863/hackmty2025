@@ -62,6 +62,15 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
 
   if (!trips || !myTrips) return <Loading />;
 
+  const formatPrice = (p: number | null | undefined) => {
+    if (p == null) return "—";
+    try {
+      return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(p);
+    } catch (e) {
+      return `$${p}`;
+    }
+  };
+
   const getRoute = async (coords: { start: [number, number]; end: [number, number] }) => {
     try {
       const res = await fetch(
@@ -113,6 +122,8 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
                   <div className="text-right">
                     <div className="text-sm text-gray-500">Distancia</div>
                     <div className="font-semibold text-gray-800">{t.distanceKm ? `${t.distanceKm} km` : "—"}</div>
+                    <div className="text-sm text-gray-500 mt-2">Precio</div>
+                    <div className="font-semibold text-gray-800">{formatPrice(t.price ?? null)}</div>
                   </div>
                 </div>
 
@@ -178,13 +189,13 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
           <div className="relative z-10 w-full max-w-sm bg-white rounded-xl shadow-xl p-6 flex flex-col items-center text-center">
             <h3 className="text-lg font-semibold text-gray-800">¿Cancelar reserva?</h3>
             <p className="text-sm text-gray-600 mt-2">Se quitará la reserva de este viaje.</p>
-            <div className="mt-4 font-medium">{confirmUnreserve.price !== null ? `Monto retenido: $${confirmUnreserve.price}` : "Monto: —"}</div>
+            <div className="mt-4 font-medium">{confirmUnreserve.price !== null ? `Monto retenido: ${formatPrice(confirmUnreserve.price)}` : "Monto: —"}</div>
             <div className="mt-6 flex gap-3">
               <button
                 className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                onClick={() => {
+                  onClick={() => {
                   setLoadingAction({ id: confirmUnreserve.id, action: "unreserve" });
-                  unreserveTrip.mutate({ id: confirmUnreserve.id, userEmail });
+                  unreserveTrip.mutate({ id: confirmUnreserve.id, userEmail: userEmail! });
                   setConfirmUnreserve(null);
                 }}
               >
@@ -208,7 +219,7 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
             </div>
             <h3 className="text-xl font-semibold text-gray-800">Pago exitoso</h3>
             <p className="text-sm text-gray-600 mt-2">Se ha realizado una retención a tu cuenta</p>
-            <div className="mt-4 font-medium">{`Monto: $${reservedAmount}`}</div>
+            <div className="mt-4 font-medium">{`Monto: ${formatPrice(reservedAmount ?? null)}`}</div>
             <button className="mt-6 px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300" onClick={() => setShowSuccessModal(false)}>Cerrar</button>
           </div>
         </div>

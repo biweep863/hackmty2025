@@ -308,7 +308,7 @@ export default function RiderPage() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 px-2 text-sm">
+              {/* <label className="flex items-center gap-2 px-2 text-sm">
                 <input
                   type="checkbox"
                   checked={useGemini}
@@ -316,7 +316,7 @@ export default function RiderPage() {
                   className="h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-200"
                 />
                 <span>Usar Gemini</span>
-              </label>
+              </label> */}
               <div className="flex gap-3">
                 <button
                   className={`rounded-lg px-4 py-2 text-sm font-medium shadow-md transition hover:scale-105 ${pinMode === "searchPin" ? "bg-red-500 text-white" : "border border-red-500 bg-white text-red-500"}`}
