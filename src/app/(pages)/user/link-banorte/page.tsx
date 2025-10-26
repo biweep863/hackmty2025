@@ -20,7 +20,7 @@ export default function LinkBanortePage() {
       try {
         localStorage.setItem("demo_banorte_linked", "true");
       } catch {}
-      setTimeout(() => router.push("/"), 400);
+      setTimeout(() => router.push("/trips"), 400);
     }
   };
 

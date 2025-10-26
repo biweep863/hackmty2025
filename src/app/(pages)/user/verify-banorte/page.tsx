@@ -57,7 +57,7 @@ export default function VerifyBanortePage() {
       localStorage.setItem("demo_banorte_linked", "true");
       localStorage.removeItem("banorte_state");
     } catch {}
-    router.push("/");
+    router.push("/trips");
   };
 
   return (

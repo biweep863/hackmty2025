@@ -58,7 +58,7 @@ export default function TokenEntryPage() {
         sessionStorage.removeItem("banorte_state");
       } catch {}
       setMessage("¡Vinculado! Redirigiendo...");
-      setTimeout(() => router.push("/"), 900);
+      setTimeout(() => router.push("/trips"), 900);
     }, 700);
   };
 
