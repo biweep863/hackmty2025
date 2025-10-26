@@ -43,7 +43,7 @@ export default function VerifyBanortePage() {
 
       setStatus("ok");
       setMessage("Vinculación completada. Redirigiendo...");
-      setTimeout(() => router.push("/"), 900);
+      setTimeout(() => router.push("/trips"), 900);
     } catch {
       setStatus("error");
       setMessage("Error interno durante verificación.");

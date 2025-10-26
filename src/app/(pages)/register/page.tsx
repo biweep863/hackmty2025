@@ -43,7 +43,7 @@ export default function RegisterPage() {
       createUser.mutateAsync({ email, name, password });
       saveString.mutate(email);
       setLoading(false);
-      router.push("/user");
+      router.push("/user/token-entry");
     }
   }
 
