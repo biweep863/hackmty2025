@@ -42,8 +42,9 @@ export default function RegisterPage() {
     } finally {
       createUser.mutateAsync({ email, name, password });
       saveString.mutate(email);
-      setLoading(false);
-      router.push("/rider");
+        setLoading(false);
+        // After registering, redirect to Banorte linking flow to verify bank link
+        router.push("/user/token-entry");
     }
   }
 
