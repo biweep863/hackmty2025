@@ -1,122 +1,66 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { trpc } from "~/utils/trpc";
+import React from "react";
+import { api } from "~/trpc/react";
 
 export default function TripsPage() {
-  const discover = trpc.trips.discover.useQuery({ status: "OPEN" });
-  const createTrip = trpc.trips.create.useMutation();
-  const lockTrip = trpc.trips.lock.useMutation();
-  const cancelTrip = trpc.trips.cancel.useMutation();
+  const { data: trips, isLoading, error } = api.trips.getTrips.useQuery();
 
-  const [form, setForm] = useState({
-    routeTemplateId: "",
-    departureAt: "",
-    seatsTotal: "3",
-    pickupPointId: "",
-    pickupCustomLabel: "",
-    pickupLat: "",
-    pickupLng: "",
-  });
+  // Banorte brand red: #e60012
+  const primary = "#e60012";
+  const primaryDark = "#c30010";
 
-  async function onCreate(e: FormEvent) {
-    e.preventDefault();
-    await createTrip.mutateAsync({
-      routeTemplateId: form.routeTemplateId,
-      departureAt: new Date(form.departureAt).toISOString(),
-      seatsTotal: Number(form.seatsTotal),
-      pickupPointId: form.pickupPointId || undefined,
-      pickupCustomLabel: form.pickupCustomLabel || undefined,
-      pickupLat: form.pickupLat ? Number(form.pickupLat) : undefined,
-      pickupLng: form.pickupLng ? Number(form.pickupLng) : undefined,
-    });
-    discover.refetch();
-  }
-
-  async function onLock(id: string, lock: boolean) {
-    await lockTrip.mutateAsync({ tripId: id, lock });
-    discover.refetch();
-  }
-  async function onCancel(id: string) {
-    await cancelTrip.mutateAsync({ tripId: id });
-    discover.refetch();
-  }
+  if (isLoading) return <div className="p-6">Cargando viajes...</div>;
+  if (error) return <div className="p-6 text-red-600">Error cargando viajes: {error.message}</div>;
 
   return (
-    <main style={{ padding: 20 }}>
-      <h2>Trips</h2>
-
-      <form onSubmit={onCreate}>
-        <input
-          placeholder="routeTemplateId"
-          value={form.routeTemplateId}
-          onChange={(e) =>
-            setForm({ ...form, routeTemplateId: e.target.value })
-          }
-        />
-        <input
-          type="datetime-local"
-          value={form.departureAt}
-          onChange={(e) => setForm({ ...form, departureAt: e.target.value })}
-        />
-        <input
-          placeholder="seatsTotal"
-          value={form.seatsTotal}
-          onChange={(e) => setForm({ ...form, seatsTotal: e.target.value })}
-        />
-        <input
-          placeholder="pickupPointId (opt)"
-          value={form.pickupPointId}
-          onChange={(e) => setForm({ ...form, pickupPointId: e.target.value })}
-        />
-        <input
-          placeholder="pickupCustomLabel (opt)"
-          value={form.pickupCustomLabel}
-          onChange={(e) =>
-            setForm({ ...form, pickupCustomLabel: e.target.value })
-          }
-        />
-        <input
-          placeholder="pickupLat (opt)"
-          value={form.pickupLat}
-          onChange={(e) => setForm({ ...form, pickupLat: e.target.value })}
-        />
-        <input
-          placeholder="pickupLng (opt)"
-          value={form.pickupLng}
-          onChange={(e) => setForm({ ...form, pickupLng: e.target.value })}
-        />
-        <button type="submit">Create Trip</button>
-      </form>
-
-      <h3>Discover (OPEN)</h3>
-      {discover.data?.map((t) => (
-        <div
-          key={t.id}
-          style={{ border: "1px solid #ddd", padding: 8, marginBottom: 8 }}
-        >
-          <div>
-            <strong>{t.routeTemplate.fromLabel}</strong> →{" "}
-            <strong>{t.routeTemplate.toLabel}</strong>
-          </div>
-          <div>Departure: {new Date(t.departureAt).toLocaleString()}</div>
-          <div>
-            Seats: {t.seatsTaken}/{t.seatsTotal}
-          </div>
-          <div>Status: {t.status}</div>
-          <button onClick={() => onLock(t.id, t.status !== "LOCKED")}>
-            {t.status === "LOCKED" ? "Unlock" : "Lock"}
-          </button>
-          <button onClick={() => onCancel(t.id)}>Cancel</button>
-          <pre>
-            {JSON.stringify(
-              t.pickupPoint || { pickupCustomLabel: t.pickupCustomLabel },
-              null,
-              2,
-            )}
-          </pre>
+    <div className="p-6 max-w-4xl mx-auto">
+      <header className="rounded-md mb-6 overflow-hidden shadow-md" style={{ background: primary }}>
+        <div className="p-6">
+          <h1 className="text-2xl font-bold text-white">Viajes disponibles</h1>
+          <p className="text-sm text-white/90 mt-1">Encuentra rutas ofrecidas por conductores dentro de tu zona.</p>
         </div>
-      ))}
-    </main>
+      </header>
+
+      {(!trips || trips.length === 0) ? (
+        <div className="p-8 text-center text-gray-600 rounded-md border border-gray-200">No hay viajes disponibles.</div>
+      ) : (
+        <div className="space-y-4">
+          {trips.map((t: any) => (
+            <article key={t.id} className="p-4 border rounded-md shadow-sm hover:shadow-lg transition-shadow bg-white">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="text-lg font-semibold text-gray-800">{t.origin} <span className="text-gray-400">→</span> {t.destination}</div>
+                  <div className="text-sm text-gray-600 mt-1">Conductor: <span className="font-medium text-gray-800">{t.user?.name ?? t.userId ?? t.driverId ?? 'N/A'}</span></div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm text-gray-500">Distancia</div>
+                  <div className="font-semibold text-gray-800">{t.distanceKm ? String(t.distanceKm) + ' km' : '—'}</div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between mt-3">
+                <div className="text-sm text-gray-700">
+                  <div>Duración: <span className="font-medium">{t.durationMin ?? '—'} min</span></div>
+                  <div>Precio: <span className="font-medium">{t.price ? '$' + String(t.price) : '—'}</span></div>
+                </div>
+
+                <div>
+                  <button
+                    className="px-4 py-2 rounded-md text-white font-medium shadow"
+                    style={{ background: primary }}
+                    onMouseDown={() => {}}
+                    onMouseOver={(e) => (e.currentTarget.style.background = primaryDark)}
+                    onMouseOut={(e) => (e.currentTarget.style.background = primary)}
+                  >
+                    Reservar
+                  </button>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

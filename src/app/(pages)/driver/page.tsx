@@ -129,6 +129,9 @@ export default function DriverPage() {
   const listMyTrips = api.routes.listMyTrips.useQuery(undefined, {
     enabled: true,
   });
+  const getEmail = api.register.getEmail.useQuery();
+  const userEmail = api.register.getUser.useQuery(getEmail.data ?? "");
+  
 
   // Banorte brand colors
   const primary = "#e60012";
@@ -199,6 +202,7 @@ export default function DriverPage() {
         distanceKm: distance ?? 0,
         durationMin: duration ?? 0,
         price: price ?? 0,
+        driverEmail: userEmail.data?.email ?? "",
       });
       toast.success("Ruta enviada con éxito!", { id: toastId });
     } catch (error) {

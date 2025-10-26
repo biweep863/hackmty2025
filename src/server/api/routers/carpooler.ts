@@ -15,13 +15,29 @@ export const carpoolerRouter = createTRPCRouter({
         distanceKm: z.number().min(0),
         price: z.number().min(20),
         durationMin: z.number().min(0).optional(),
+        driverEmail: z.string(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       // const userId = ctx.session!.user.id;
+      const driver = await db.user
+        .findUnique({
+          where: { email: input.driverEmail },
+        })
       return db.ride.create({
         data: {
-          ...input,
+          origin: input.origin,
+          destination: input.destination,
+          latStart: input.latStart,
+          lngStart: input.lngStart,
+          latEnd: input.latEnd,
+          lngEnd: input.lngEnd,
+          distanceKm: input.distanceKm,
+          durationMin: input.durationMin,
+          price: input.price,
+          driver: {
+            connect: { id: driver?.id },
+          }
         },
       });
     }),

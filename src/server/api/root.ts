@@ -3,6 +3,7 @@ import { carpoolerRouter } from "./routers/carpooler";
 import { tripsRouter } from "./routers/trips";
 import { adminRouter } from "./routers/admin";
 import { registerRouter } from "./routers/register";
+import { routesRouter } from "./routers/routes";
 
 /**
  * This is the primary router for your server.
@@ -14,6 +15,7 @@ export const appRouter = createTRPCRouter({
   trips: tripsRouter,
   admin: adminRouter,
   register: registerRouter,
+  routes: routesRouter
 });
 
 // export type definition of API
