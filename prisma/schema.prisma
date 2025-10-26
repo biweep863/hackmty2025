@@ -17,6 +17,8 @@ model User {
     // Relación con carpool
     ridesOffered     Ride[] @relation("RidesOffered")         
     ridesReserved    Ride[] @relation("RideReservations")
+    // Generated stops created by this user
+    generatedStops   GeneratedStop[]
 }
 
 /// Sedes del banco (orígenes/destinos frecuentes)
