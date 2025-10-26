@@ -16,11 +16,12 @@ function pct(n: number) {
 }
 
 export default async function AdminPage() {
-  const [summary, trend, trips, security] = await Promise.all([
+  const [summary, trend, trips, security, frequency] = await Promise.all([
     api.admin.summary(),
     api.admin.salesTrend({ bucket: "day" }),
     api.admin.tripRevenues({ limit: 50 }),
     api.admin.securityAnomalies({ occupancyThreshold: 0.25 }),
+    api.admin.tripFrequency(),
   ]);
 
   return (
@@ -83,6 +84,13 @@ export default async function AdminPage() {
                         }))}
                         height={80}
                       />
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700">Platform revenue trend</h4>
+                        <Sparkline
+                          series={trend.series.map((d) => ({ label: d.bucket, value: (d as any).platformRevenueCents || 0 }))}
+                          height={48}
+                        />
+                      </div>
                       <div className="mt-4 overflow-x-auto">
                         <table className="w-full border-collapse text-sm">
                           <thead>
@@ -125,6 +133,42 @@ export default async function AdminPage() {
                             )}
                           </tbody>
                         </table>
+                      </div>
+                      <div className="mt-6">
+                        <h4 className="mb-2 text-sm font-semibold text-gray-800">Trips frequency</h4>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div>
+                            <div className="text-xs text-gray-500">By weekday</div>
+                            <div className="mt-2 flex items-end gap-2 h-28">
+                              {frequency.weekdays.map((w: any) => {
+                                const max = Math.max(...frequency.weekdays.map((x: any) => x.count), 1);
+                                const pct = Math.round((w.count / max) * 100);
+                                return (
+                                  <div key={w.label} className="flex flex-col items-center text-xs">
+                                    <div className="bg-red-600 w-6" style={{ height: `${pct}%` }} />
+                                    <div className="mt-1">{w.label}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="text-xs text-gray-500">By month</div>
+                            <div className="mt-2 flex items-end gap-2 h-28 overflow-x-auto">
+                              {frequency.months.map((m: any) => {
+                                const max = Math.max(...frequency.months.map((x: any) => x.count), 1);
+                                const pct = Math.round((m.count / max) * 100);
+                                return (
+                                  <div key={m.label} className="flex flex-col items-center text-xs mr-2">
+                                    <div className="bg-red-600 w-6" style={{ height: `${pct}%` }} />
+                                    <div className="mt-1">{m.label}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

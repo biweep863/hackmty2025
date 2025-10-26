@@ -20,6 +20,7 @@ export default function AdminTransactions({
               <th className="px-3 py-2">Seats</th>
               <th className="px-3 py-2">Gross</th>
               <th className="px-3 py-2">Net</th>
+              <th className="px-3 py-2">Platform Rev</th>
               <th className="px-3 py-2">Inspect</th>
             </tr>
           </thead>
@@ -34,6 +35,7 @@ export default function AdminTransactions({
                 <td className="px-3 py-2 text-gray-700">{t.seatsTaken}{t.seatsCapacity ? `/${t.seatsCapacity}` : ""}</td>
                 <td className="px-3 py-2 text-gray-700">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((t.grossCents||0)/100)}</td>
                 <td className="px-3 py-2 text-gray-700">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((t.netCents||0)/100)}</td>
+                <td className="px-3 py-2 text-gray-700">{new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(((t.platformRevenueCents||0))/100)}</td>
                 <td className="px-3 py-2">
                   <button onClick={() => setInspect(t)} className="rounded border px-2 py-1 text-xs bg-white">Inspect</button>
                 </td>
@@ -55,6 +57,8 @@ export default function AdminTransactions({
               <div><strong>Seats taken:</strong> {inspect.seatsTaken}</div>
               <div><strong>Price (cents):</strong> {inspect.priceCents ?? "-"}</div>
               <div><strong>Gross:</strong> {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((inspect.grossCents||0)/100)}</div>
+              <div><strong>Platform fee (2%):</strong> {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(((inspect.platformFeeCents||0))/100)}</div>
+              <div><strong>Platform revenue (commission + fee):</strong> {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(((inspect.platformRevenueCents||0))/100)}</div>
               <div><strong>Net:</strong> {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format((inspect.netCents||0)/100)}</div>
               <div><strong>Suspicious:</strong> {inspect.suspicious ? "Yes" : "No"}</div>
               <div className="mt-3">
