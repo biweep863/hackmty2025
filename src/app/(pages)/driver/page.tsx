@@ -131,7 +131,6 @@ export default function DriverPage() {
   });
   const getEmail = api.register.getEmail.useQuery();
   const userEmail = api.register.getUser.useQuery(getEmail.data ?? "");
-  
 
   // Banorte brand colors
   const primary = "#e60012";
@@ -192,6 +191,33 @@ export default function DriverPage() {
     if (!coords) return;
     const toastId = toast.loading("Enviando ruta...");
     try {
+      // Persist any generatedStops first so riders can discover them.
+      if (generatedStops && generatedStops.length > 0) {
+        try {
+          const created = await saveStops.mutateAsync(
+            generatedStops.map((s) => ({
+              label: s.label ?? "Parada",
+              lat: s.lat,
+              lng: s.lng,
+            })),
+          );
+          // Update local generatedStops with persisted ids
+          setGeneratedStops(
+            created.map((c: any) => ({
+              id: c.id,
+              lat: Number(c.lat),
+              lng: Number(c.lng),
+              label: c.label ?? "Parada",
+            })),
+          );
+        } catch (err) {
+          console.error(
+            "Error saving generated stops before sending ride:",
+            err,
+          );
+          // proceed anyway
+        }
+      }
       await ride.mutateAsync({
         origin,
         destination,
@@ -227,6 +253,7 @@ export default function DriverPage() {
         toLat: coords.end[0],
         toLng: coords.end[1],
         bufferMeters: bufferMeters,
+        // no debug flag in normal flow
       }
     : { fromLat: 0, fromLng: 0, toLat: 0, toLng: 0, bufferMeters: 600 };
 
@@ -237,12 +264,49 @@ export default function DriverPage() {
   const handleFindPickupPoints = async () => {
     if (!coords) return toast.error("Selecciona origen y destino primero");
     try {
-      await pickupQuery.refetch();
-      const count = (pickupQuery.data ?? []).length;
+      // Refetch the query and read the returned data (refetch returns the fresh result)
+      const refetchResult = await pickupQuery.refetch();
+      // refetchResult contains the fresh query result; we proceed using its data
+      const points = (refetchResult.data ?? []).filter(Boolean) as any[];
+      const count = points.length;
       if (count === 0) {
         toast("No se encontraron puntos cercanos. Prueba aumentar el radio.");
-      } else {
-        toast.success(`Se encontraron ${count} puntos cercanos`);
+        return;
+      }
+
+      // Try to persist the found pickup points as generated stops so the driver
+      // can include them in a Trip and riders can search against them.
+      try {
+        const created = await saveStops.mutateAsync(
+          points.map((p) => ({
+            label: p.label ?? p.site?.name ?? "Punto",
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+          })),
+        );
+        setGeneratedStops(
+          created.map((c: any) => ({
+            id: c.id,
+            lat: Number(c.lat),
+            lng: Number(c.lng),
+            label: c.label ?? "Punto",
+          })),
+        );
+        toast.success(
+          `Se encontraron ${count} puntos cercanos y se guardaron ${created.length}`,
+        );
+      } catch (err) {
+        console.error("Error saving pickup points:", err);
+        // Fallback: show them locally even if saving failed
+        setGeneratedStops(
+          points.map((p, i) => ({
+            id: `p-${i}`,
+            lat: Number(p.lat),
+            lng: Number(p.lng),
+            label: p.label ?? p.site?.name ?? "Punto",
+          })),
+        );
+        toast.success(`Se encontraron ${count} puntos cercanos (no guardados)`);
       }
     } catch (err) {
       console.error(err);
@@ -658,6 +722,7 @@ export default function DriverPage() {
                 >
                   Buscar puntos
                 </button>
+                {/* Debug button removed in cleaned version */}
                 <button
                   className="rounded-md border border-gray-300 bg-white px-3 py-2"
                   onClick={handleGenerateStops}
