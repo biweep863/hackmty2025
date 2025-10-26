@@ -13,7 +13,7 @@ export const carpoolerRouter = createTRPCRouter({
         latEnd: z.number().min(-90).max(90),
         lngEnd: z.number().min(-180).max(180),
         distanceKm: z.number().min(0),
-        price: z.number().min(20),
+        price: z.number().min(10),
         durationMin: z.number().min(0).optional(),
         driverEmail: z.string(),
       }),

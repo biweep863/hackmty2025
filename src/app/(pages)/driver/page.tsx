@@ -483,6 +483,7 @@ export default function DriverPage() {
         setDistance(null);
         return;
       }
+      const baseprice = 10;
       const data = (await res.json()) as OSRMResponse;
       const routeData = data.routes?.[0];
       if (!routeData) {
@@ -493,7 +494,7 @@ export default function DriverPage() {
       setRoute(routeData.geometry.coordinates.map(([lon, lat]) => [lat, lon]));
       setDistance(routeData.distance / 1000);
       setDuration((routeData.distance / 1000) * 1.5);
-      setPrice((routeData.distance / 1000) * 5);
+      setPrice(baseprice + (routeData.distance / 1000) * 5.3);
     };
     void fetchRoute();
   }, [coords]);
