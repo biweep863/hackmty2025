@@ -9,41 +9,40 @@ const PRICE_PER_SEAT_CENTS = Number(3000); // $30 default
 const MARGIN_PCT = Number(0.15); // 15% default margin
 
 type TripFinance = {
-  tripId: string;
-  departureAt: Date;
+  id: string;
+  createdAt: Date;
   fromLabel: string;
   toLabel: string;
-  seatsTotal: number;
   seatsTaken: number;
-  status: string;
+  seatsCapacity?: number | null;
   grossCents: number;
   netCents: number;
 };
 
-function computeTripFinance(input: {
-  trip: {
+function computeTripFinanceForRide(input: {
+  ride: {
     id: string;
-    departureAt: Date;
-    seatsTotal: number;
-    seatsTaken: number;
-    status: string;
-    routeTemplate: { fromLabel: string; toLabel: string };
+    createdAt: Date;
+    origin: string;
+    destination: string;
+    price: number | string | null;
+    clients?: Array<unknown> | null;
   };
   pricePerSeatCents?: number;
   marginPct?: number;
 }): TripFinance {
-  const price = input.pricePerSeatCents ?? PRICE_PER_SEAT_CENTS;
+  const priceCents = input.pricePerSeatCents ?? PRICE_PER_SEAT_CENTS;
   const margin = input.marginPct ?? MARGIN_PCT;
-  const gross = input.trip.seatsTaken * price;
+  const seatsTaken = (input.ride.clients?.length ?? 0) as number;
+  const gross = seatsTaken * priceCents;
   const net = Math.round(gross * (1 - margin));
   return {
-    tripId: input.trip.id,
-    departureAt: input.trip.departureAt,
-    fromLabel: input.trip.routeTemplate.fromLabel,
-    toLabel: input.trip.routeTemplate.toLabel,
-    seatsTotal: input.trip.seatsTotal,
-    seatsTaken: input.trip.seatsTaken,
-    status: input.trip.status,
+    id: input.ride.id,
+    createdAt: input.ride.createdAt,
+    fromLabel: input.ride.origin,
+    toLabel: input.ride.destination,
+    seatsTaken,
+    seatsCapacity: null,
     grossCents: gross,
     netCents: net,
   };
@@ -60,47 +59,52 @@ export const adminRouter = createTRPCRouter({
         .object({
           from: z.string().datetime().optional(),
           to: z.string().datetime().optional(),
+          // Optional overrides so admin can preview different pricing / margin
+          pricePerSeatCents: z.number().int().optional(),
+          marginPct: z.number().optional(),
         })
         .optional(),
     )
     .query(async ({ input }) => {
       const where: any = {};
       if (input?.from || input?.to) {
-        where.departureAt = {};
-        if (input.from) where.departureAt.gte = new Date(input.from);
-        if (input.to) where.departureAt.lte = new Date(input.to);
+        where.createdAt = {};
+        if (input.from) where.createdAt.gte = new Date(input.from);
+        if (input.to) where.createdAt.lte = new Date(input.to);
       }
 
-      const trips = await db.trip.findMany({
+      // Query Ride model (existing in schema). Include clients so we can count attendees.
+      const rides = await db.ride.findMany({
         where,
-        include: {
-          routeTemplate: { select: { fromLabel: true, toLabel: true } },
-        },
+        include: { clients: true },
       });
 
-      const financials = trips.map((t) =>
-        computeTripFinance({
-          trip: t,
-          pricePerSeatCents: PRICE_PER_SEAT_CENTS,
-          marginPct: MARGIN_PCT,
+      const priceOverride = input?.pricePerSeatCents;
+      const marginOverride = input?.marginPct;
+
+      const financials = rides.map((r) =>
+        computeTripFinanceForRide({
+          ride: r as any,
+          pricePerSeatCents: priceOverride ?? PRICE_PER_SEAT_CENTS,
+          marginPct: marginOverride ?? MARGIN_PCT,
         }),
       );
 
-      const tripsCount = trips.length;
-      const seatsSold = trips.reduce((acc, t) => acc + t.seatsTaken, 0);
-      const seatsCapacity = trips.reduce((acc, t) => acc + t.seatsTotal, 0);
+      const tripsCount = rides.length;
+      const seatsSold = rides.reduce((acc, r) => acc + (r.clients?.length ?? 0), 0);
+      const seatsCapacity = 0; // not tracked in Ride model
       const grossCents = financials.reduce((acc, f) => acc + f.grossCents, 0);
       const netCents = financials.reduce((acc, f) => acc + f.netCents, 0);
-      const occupancy = seatsCapacity > 0 ? seatsSold / seatsCapacity : 0;
+      const occupancy = 0; // cannot compute without capacity
 
       return {
         tripsCount,
         seatsSold,
         seatsCapacity,
-        occupancy, // 0..1
+        occupancy,
         grossCents,
         netCents,
-        currency: "USD", // change if needed
+        currency: "USD",
       };
     }),
 
@@ -116,20 +120,18 @@ export const adminRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const where: any = {};
       if (input.from || input.to) {
-        where.departureAt = {};
-        if (input.from) where.departureAt.gte = new Date(input.from);
-        if (input.to) where.departureAt.lte = new Date(input.to);
+        where.createdAt = {};
+        if (input.from) where.createdAt.gte = new Date(input.from);
+        if (input.to) where.createdAt.lte = new Date(input.to);
       }
 
-      const trips = await db.trip.findMany({
+      const rides = await db.ride.findMany({
         where,
-        include: {
-          routeTemplate: { select: { fromLabel: true, toLabel: true } },
-        },
-        orderBy: { departureAt: "asc" },
+        include: { clients: true },
+        orderBy: { createdAt: "asc" },
       });
 
-      const fin = trips.map((t) => computeTripFinance({ trip: t }));
+      const fin = rides.map((r) => computeTripFinanceForRide({ ride: r as any }));
       const buckets = new Map<
         string,
         { gross: number; net: number; count: number }
@@ -154,7 +156,7 @@ export const adminRouter = createTRPCRouter({
       };
 
       for (const f of fin) {
-        const key = toKey(f.departureAt);
+        const key = toKey(f.createdAt);
         const b = buckets.get(key) ?? { gross: 0, net: 0, count: 0 };
         b.gross += f.grossCents;
         b.net += f.netCents;
@@ -181,14 +183,43 @@ export const adminRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ input }) => {
-      const trips = await db.trip.findMany({
-        include: {
-          routeTemplate: { select: { fromLabel: true, toLabel: true } },
-        },
-        orderBy: { departureAt: "desc" },
+      const rides = await db.ride.findMany({
+        include: { clients: true },
+        orderBy: { createdAt: "desc" },
         take: input?.limit ?? 50,
       });
-      return trips.map((t) => computeTripFinance({ trip: t }));
+
+      // Compute basic statistics for price to flag outliers
+      const prices: number[] = [];
+      for (const r of rides) {
+        const p = (r as any).price;
+        if (p != null) prices.push(Number(p));
+      }
+      const mean = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+      const variance = prices.length ? prices.reduce((a, b) => a + Math.pow(Number(b) - mean, 2), 0) / prices.length : 0;
+      const std = Math.sqrt(variance);
+
+      return rides.map((r) => {
+        const fin = computeTripFinanceForRide({ ride: r as any });
+        const priceNum = (r as any).price != null ? Number((r as any).price) : null;
+        const suspicious =
+          fin.seatsTaken === 0 ||
+          priceNum == null ||
+          (priceNum != null && std > 0 && (priceNum > mean + 3 * std || priceNum < mean - 3 * std));
+        return {
+          id: fin.id,
+          createdAt: fin.createdAt,
+          fromLabel: fin.fromLabel,
+          toLabel: fin.toLabel,
+          seatsTaken: fin.seatsTaken,
+          seatsCapacity: fin.seatsCapacity ?? null,
+          grossCents: fin.grossCents,
+          netCents: fin.netCents,
+          priceCents: priceNum != null ? Math.round(priceNum * 100) : null,
+          suspicious,
+          raw: r,
+        };
+      });
     }),
 
   // Very simple anomaly checks; tune as you wish
@@ -202,63 +233,23 @@ export const adminRouter = createTRPCRouter({
         .optional(),
     )
     .query(async ({ input }) => {
-      const trips = await db.trip.findMany({
-        include: {
-          routeTemplate: { select: { fromLabel: true, toLabel: true } },
-          bookings: { select: { status: true } },
-        },
-        orderBy: { departureAt: "desc" },
-        take: 200, // last N
+      const rides = await db.ride.findMany({
+        include: { clients: true },
+        orderBy: { createdAt: "desc" },
+        take: 200,
       });
 
-      const anomalies = [];
-      for (const t of trips) {
-        const occupancy = t.seatsTotal > 0 ? t.seatsTaken / t.seatsTotal : 0;
-        const cancels =
-          t.bookings.filter(
-            (b) =>
-              b.status === "CANCELED_BY_RIDER" ||
-              b.status === "CANCELED_BY_DRIVER",
-          ).length || 0;
-        const pending =
-          t.bookings.filter((b) => b.status === "PENDING").length || 0;
-        const rejected =
-          t.bookings.filter((b) => b.status === "REJECTED").length || 0;
+      const anomalies: Array<any> = [];
+      for (const r of rides) {
+        const seatsTaken = r.clients?.length ?? 0;
 
-        if ((input?.includeCanceled ?? true) && t.status === "CANCELED") {
+        if (seatsTaken === 0) {
           anomalies.push({
-            tripId: t.id,
-            type: "TRIP_CANCELED",
-            departureAt: t.departureAt,
-            route: `${t.routeTemplate.fromLabel} → ${t.routeTemplate.toLabel}`,
-            detail: `Trip canceled; pending: ${pending}, rejected: ${rejected}, cancels: ${cancels}`,
-          });
-        }
-        if (t.seatsTaken === 0) {
-          anomalies.push({
-            tripId: t.id,
+            rideId: r.id,
             type: "ZERO_SEATS_TAKEN",
-            departureAt: t.departureAt,
-            route: `${t.routeTemplate.fromLabel} → ${t.routeTemplate.toLabel}`,
-            detail: "Trip ended with zero riders",
-          });
-        }
-        if (occupancy < (input?.occupancyThreshold ?? 0.2)) {
-          anomalies.push({
-            tripId: t.id,
-            type: "LOW_OCCUPANCY",
-            departureAt: t.departureAt,
-            route: `${t.routeTemplate.fromLabel} → ${t.routeTemplate.toLabel}`,
-            detail: `Occupancy ${(occupancy * 100).toFixed(0)}%`,
-          });
-        }
-        if (rejected >= 3) {
-          anomalies.push({
-            tripId: t.id,
-            type: "HIGH_REJECTION",
-            departureAt: t.departureAt,
-            route: `${t.routeTemplate.fromLabel} → ${t.routeTemplate.toLabel}`,
-            detail: `Rejected ${rejected} bookings`,
+            createdAt: r.createdAt,
+            route: `${r.origin} → ${r.destination}`,
+            detail: "Ride ended with zero riders",
           });
         }
       }
