@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { trpc } from "~/utils/trpc";
 
 export default function BookingsPage() {
@@ -98,7 +99,7 @@ export default function BookingsPage() {
             </div>
             <div>
               Pickup:{" "}
-              {b.trip.pickupPoint?.label || b.trip.pickupCustomLabel || "N/A"}
+              {b.pickupPoint?.label || b.pickupNote || "N/A"}
             </div>
 
             <div style={{ marginTop: 8 }}>

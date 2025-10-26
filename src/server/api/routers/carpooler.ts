@@ -3,6 +3,35 @@ import { z } from "zod";
 import { db } from "~/server/db";
 
 export const carpoolerRouter = createTRPCRouter({
+  getProfile: protectedProcedure.query(async ({ ctx }) => {
+    const userId = (ctx.session as any).user.id;
+    return db.carpoolerProfile.findUnique({
+      where: { userId },
+    });
+  }),
+
+  upsertProfile: protectedProcedure
+    .input(
+      z.object({
+        vehicleMake: z.string().optional(),
+        vehicleModel: z.string().optional(),
+        vehicleColor: z.string().optional(),
+        plateLast4: z.string().optional(),
+        seatsDefault: z.number().int().min(1).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const userId = (ctx.session as any).user.id;
+      return db.carpoolerProfile.upsert({
+        where: { userId },
+        create: {
+          userId,
+          ...input,
+        },
+        update: input,
+      });
+    }),
+
   pushRide: publicProcedure
     .input(
       z.object({

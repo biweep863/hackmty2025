@@ -1,6 +1,7 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { trpc } from "~/utils/trpc";
 
 export default function AvailabilityPage() {
@@ -53,8 +54,8 @@ export default function AvailabilityPage() {
     list.refetch();
   }
 
-  async function onToggle(id: string, isActive: boolean) {
-    await toggleActive.mutateAsync({ id, isActive });
+  async function onToggle(id: string) {
+    await toggleActive.mutateAsync({ id });
     list.refetch();
   }
 
@@ -136,7 +137,7 @@ export default function AvailabilityPage() {
           <div>ID: {a.id}</div>
           <div>Type: {a.type}</div>
           <div>Active: {String(a.isActive)}</div>
-          <button onClick={() => onToggle(a.id, !a.isActive)}>
+          <button onClick={() => onToggle(a.id)}>
             {a.isActive ? "Deactivate" : "Activate"}
           </button>
           <pre>{JSON.stringify(a, null, 2)}</pre>
