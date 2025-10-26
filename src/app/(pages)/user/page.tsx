@@ -43,7 +43,7 @@ export default function UserPage() {
   const [trips] = useState(
     [
       { id: "t1", role: "Conductor", title: "Monterrey → San Pedro", date: "2025-10-10", amount: 320 },
-      { id: "t2", role: "Pasajero", title: "Apodaca → Tec", date: "2025-09-28", amount: -45 },
+      { id: "t2", role: "Pasajero", title: "Apodaca → Tec", date: "2025-09-28", amount: -95 },
     ] as Array<{ id: string; role: string; title: string; date: string; amount: number }>
   );
 
@@ -252,8 +252,7 @@ export default function UserPage() {
 
             <div className="p-4 bg-white border border-gray-100 rounded-lg shadow-sm card-hover">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm text-gray-500">Datos Banorte (sandbox)</h3>
-                <span className="text-xs text-gray-400">simulado</span>
+                <h3 className="text-sm text-gray-500">Datos de tu cuenta Banorte</h3>
               </div>
               <div className="mt-3">
                 {banorteLinked ? (
@@ -266,7 +265,7 @@ export default function UserPage() {
                     <div className="text-lg font-semibold">{formatCurrency(bankData.balance)} MXN</div>
                   </div>
                 ) : (
-                  <div className="text-sm text-gray-600">No hay vínculo activo con Banorte. Usa el botón Vincular Banorte para probar la experiencia sandbox.</div>
+                  <div className="text-sm text-gray-600">No hay vínculo activo con Banorte usa el botón Vincular Banorte para probar la experiencia.</div>
                 )}
               </div>
             </div>
