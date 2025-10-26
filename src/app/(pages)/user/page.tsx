@@ -1,7 +1,6 @@
 "use client";
 
 import { api } from "~/trpc/react";
-import UserCard from "~/app/_components/UserCard";
 import React, { use, useEffect, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { usePathname } from "next/navigation";

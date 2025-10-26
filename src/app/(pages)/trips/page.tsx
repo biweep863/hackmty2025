@@ -2,9 +2,15 @@
 
 import React from "react";
 import { api } from "~/trpc/react";
+import TripsList from "~/app/_components/SavedTripsCard";
 
 export default function TripsPage() {
   const { data: trips, isLoading, error } = api.trips.getTrips.useQuery();
+  const getEmail = api.register.getEmail.useQuery();
+  const userEmail = api.register.getUser.useQuery(getEmail.data ?? "");
+  const reserveTrip = api.trips.saveTrip.useMutation();
+  const { data: myTrips, isLoading: myTripsLoading, error: myTripsError } = api.trips.getMyTrips.useQuery(userEmail.data?.email ?? "");
+  const getDriver = api.trips.getDriver;
 
   // Banorte brand red: #e60012
   const primary = "#e60012";
@@ -22,45 +28,8 @@ export default function TripsPage() {
         </div>
       </header>
 
-      {(!trips || trips.length === 0) ? (
-        <div className="p-8 text-center text-gray-600 rounded-md border border-gray-200">No hay viajes disponibles.</div>
-      ) : (
-        <div className="space-y-4">
-          {trips.map((t: any) => (
-            <article key={t.id} className="p-4 border rounded-md shadow-sm hover:shadow-lg transition-shadow bg-white">
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <div className="text-lg font-semibold text-gray-800">{t.origin} <span className="text-gray-400">→</span> {t.destination}</div>
-                  <div className="text-sm text-gray-600 mt-1">Conductor: <span className="font-medium text-gray-800">{t.user?.name ?? t.userId ?? t.driverId ?? 'N/A'}</span></div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">Distancia</div>
-                  <div className="font-semibold text-gray-800">{t.distanceKm ? String(t.distanceKm) + ' km' : '—'}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-3">
-                <div className="text-sm text-gray-700">
-                  <div>Duración: <span className="font-medium">{t.durationMin ?? '—'} min</span></div>
-                  <div>Precio: <span className="font-medium">{t.price ? '$' + String(t.price) : '—'}</span></div>
-                </div>
-
-                <div>
-                  <button
-                    className="px-4 py-2 rounded-md text-white font-medium shadow"
-                    style={{ background: primary }}
-                    onMouseDown={() => {}}
-                    onMouseOver={(e) => (e.currentTarget.style.background = primaryDark)}
-                    onMouseOut={(e) => (e.currentTarget.style.background = primary)}
-                  >
-                    Reservar
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      <TripsList trips={trips} myTrips={myTrips} userEmail={userEmail.data?.email} />
+      {/* <TripsList trips={myTrips} title="Mis Viajes" userEmail={userEmail.data?.email} /> */}
     </div>
   );
 }
