@@ -9,4 +9,18 @@ export const tripsRouter = createTRPCRouter({
     .query(() => {
       return db.ride.findMany();
     }),
+  saveTrips: publicProcedure
+    .input(
+      z.object({
+        id: z.string().uuid(),
+        userEmail: z.string()
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { id } = input;
+      return db.ride.update({
+        where: { id },
+        data: { status },
+      });
+    }),
 });
