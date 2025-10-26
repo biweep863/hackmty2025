@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { api } from "~/trpc/react";
+import Loading from "~/app/_components/Loading";
 
 export default function UserCard() {
   const email = api.register.getEmail.useQuery();
   console.log("Fetched email from user.json:", email.data);
 
   const { data: use, isLoading, error } = api.register.getUser.useQuery(email.data ?? "");
+  if (isLoading) return <Loading />;
   const user = use || {name: "—", email: "—"};
 
   return (
