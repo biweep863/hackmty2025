@@ -267,204 +267,356 @@ export default function RiderPage() {
   };
 
   return (
-    <div className="min-h-[60vh] bg-white text-gray-900 animate-fade-up font-sans">
-      <div className="max-w-5xl mx-auto px-6 py-10">
-        <header className="mb-6">
-          <div className="bg-red-600 p-6 rounded-lg shadow-lg transition-transform duration-300 hover:scale-105">
-            <h1 className="text-4xl font-bold text-white transition-all duration-300 hover:text-gray-200">
-              Buscar viajes
-            </h1>
-            <p className="text-sm text-gray-200 mt-2 transition-all duration-300 hover:text-gray-100">
-              Busca viajes cercanos y únete a un pickup
-            </p>
-          </div>
-        </header>
+    <div className="mx-auto max-w-5xl p-6">
+      <header className="mb-6 rounded-md">
+        <h1 className="text-3xl font-bold text-red-600">Buscar viajes</h1>
+        <p className="text-sm text-red-500">
+          Busca viajes cercanos y únete a un pickup
+        </p>
+      </header>
 
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left column: Search options */}
-          <div className="lg:col-span-1 space-y-8">
-            <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <span className="text-red-600"></span> Opciones de búsqueda
-              </h3>
-              <div className="mt-4 flex flex-wrap gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="md:col-span-2">
+          <div className="mb-3">
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar dirección"
+                className="min-w-0 flex-1 rounded border p-2 text-sm"
+              />
+              <div className="flex gap-2">
+                <button
+                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  onClick={() => void handleSearchNearby()}
+                >
+                  Buscar cerca
+                </button>
+                <button
+                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  onClick={() => void handleNearest()}
+                >
+                  Buscar punto más cercano
+                </button>
+                <button
+                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  onClick={() => clearAllRoutes()}
+                >
+                  Limpiar ruta
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <label className="flex items-center gap-2 px-2 text-sm">
                 <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar dirección"
-                  className="flex-1 rounded-lg border border-gray-300 p-3 text-sm shadow-sm focus:ring focus:ring-red-200"
+                  type="checkbox"
+                  checked={useGemini}
+                  onChange={(e) => setUseGemini(e.target.checked)}
                 />
-                <div className="flex gap-2">
-                  <button
-                    className="transform rounded-lg border border-red-600 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:bg-red-600 hover:text-white flex items-center justify-center"
-                    onClick={() => void handleSearchNearby()}
-                  >
-                    Buscar cerca
-                  </button>
-                  <button
-                    className="transform rounded-lg border border-red-600 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:bg-red-600 hover:text-white flex items-center justify-center"
-                    onClick={() => void handleNearest()}
-                  >
-                    Buscar punto más cercano
-                  </button>
-                  <button
-                    className="transform rounded-lg border border-red-600 bg-white px-4 py-2 text-sm font-medium text-red-600 shadow-sm transition-all duration-300 ease-in-out hover:scale-105 hover:bg-red-600 hover:text-white flex items-center justify-center"
-                    onClick={() => clearAllRoutes()}
-                  >
-                    Limpiar ruta
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <span className="text-red-600"></span> Opciones avanzadas
-              </h3>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <label className="flex items-center gap-2 px-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={useGemini}
-                    onChange={(e) => setUseGemini(e.target.checked)}
-                  />
-                  <span>Usar Gemini</span>
-                </label>
-                <div className="flex gap-2">
-                  <button
-                    className={`rounded-lg px-4 py-2 text-sm transition-all duration-300 ease-in-out ${pinMode === "searchPin" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm hover:scale-105`}
-                    onClick={() =>
-                      setPinMode(pinMode === "searchPin" ? "none" : "searchPin")
+                <span>Usar Gemini</span>
+              </label>
+              <div className="flex gap-2">
+                <button
+                  className={`rounded border px-3 py-1 text-sm ${pinMode === "searchPin" ? "bg-red-600 text-white" : "border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  onClick={() =>
+                    setPinMode(pinMode === "searchPin" ? "none" : "searchPin")
+                  }
+                >
+                  Pin
+                </button>
+                <button
+                  className={`rounded px-3 py-1 text-sm ${pinMode === "setA" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  onClick={() =>
+                    setPinMode(pinMode === "setA" ? "none" : "setA")
+                  }
+                >
+                  Poner Origen A
+                </button>
+                <button
+                  className={`rounded px-3 py-1 text-sm ${pinMode === "setB" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  onClick={() =>
+                    setPinMode(pinMode === "setB" ? "none" : "setB")
+                  }
+                >
+                  Poner Destino B
+                </button>
+                <button
+                  className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                  onClick={() => {
+                    if (!clientA || !clientB) {
+                      toast.error("Define Origen (A) y Destino (B) primero");
+                      return;
                     }
-                  >
-                    Pin
-                  </button>
-                  <button
-                    className={`rounded-lg px-4 py-2 text-sm transition-all duration-300 ease-in-out ${pinMode === "setA" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm hover:scale-105`}
-                    onClick={() =>
-                      setPinMode(pinMode === "setA" ? "none" : "setA")
-                    }
-                  >
-                    Poner Origen A
-                  </button>
-                  <button
-                    className={`rounded-lg px-4 py-2 text-sm transition-all duration-300 ease-in-out ${pinMode === "setB" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm hover:scale-105`}
-                    onClick={() =>
-                      setPinMode(pinMode === "setB" ? "none" : "setB")
-                    }
-                  >
-                    Poner Destino B
-                  </button>
-                </div>
+                    setMatchInput({
+                      clientFromLat: clientA[0],
+                      clientFromLng: clientA[1],
+                      clientToLat: clientB[0],
+                      clientToLng: clientB[1],
+                      useGemini: useGemini,
+                    });
+                  }}
+                >
+                  Buscar coincidencias
+                </button>
               </div>
             </div>
           </div>
-
-          {/* Right column: Map and results */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <span className="text-red-600"></span> Mapa
-              </h3>
-              <div className="mt-4 h-[70vh] rounded-xl overflow-hidden border border-gray-200">
-                <Map
-                  onMapClick={(lat, lng) => {
-                    if (pinMode === "searchPin") {
-                      setSelectedCoords([lat, lng]);
-                      setPinMode("none");
-                      void handleSearchNearby(lat, lng);
-                    } else if (pinMode === "setA") {
-                      setClientA([lat, lng]);
-                      setPinMode("none");
-                      toast.success("Origen (A) establecido");
-                    } else if (pinMode === "setB") {
-                      setClientB([lat, lng]);
-                      setPinMode("none");
-                      toast.success("Destino (B) establecido");
+          <div className="h-[70vh]">
+            <Map
+              onMapClick={(lat, lng) => {
+                if (pinMode === "searchPin") {
+                  setSelectedCoords([lat, lng]);
+                  setPinMode("none");
+                  void handleSearchNearby(lat, lng);
+                } else if (pinMode === "setA") {
+                  setClientA([lat, lng]);
+                  setPinMode("none");
+                  toast.success("Origen (A) establecido");
+                } else if (pinMode === "setB") {
+                  setClientB([lat, lng]);
+                  setPinMode("none");
+                  toast.success("Destino (B) establecido");
+                }
+              }}
+              generatedStops={
+                nearestQuery.data?.points
+                  ? nearestQuery.data.points.map((p: any) => ({
+                      id: p.id,
+                      label: p.label ?? undefined,
+                      lat: p.lat,
+                      lng: p.lng,
+                    }))
+                  : null
+              }
+              highlightPickupId={nearestQuery.data?.nearestPoint?.id ?? null}
+              extraRoute={routePoints}
+              clientA={clientA}
+              clientB={clientB}
+              matchPointFrom={
+                selectedMatch
+                  ? { lat: selectedMatch.fromLat, lng: selectedMatch.fromLng }
+                  : matchQuery.data?.chosen
+                    ? {
+                        lat: matchQuery.data.chosen.fromLat,
+                        lng: matchQuery.data.chosen.fromLng,
+                      }
+                    : null
+              }
+              matchPointTo={
+                selectedMatch
+                  ? { lat: selectedMatch.toLat, lng: selectedMatch.toLng }
+                  : matchQuery.data?.chosen
+                    ? {
+                        lat: matchQuery.data.chosen.toLat,
+                        lng: matchQuery.data.chosen.toLng,
+                      }
+                    : null
+              }
+              segments={segments}
+              coords={
+                nearestQuery.data?.nearestPoint
+                  ? {
+                      start: [
+                        nearestInput?.lat ?? selectedCoords?.[0] ?? 25.6866,
+                        nearestInput?.lng ?? selectedCoords?.[1] ?? -100.3161,
+                      ],
+                      end: [
+                        nearestQuery.data.nearestPoint.lat,
+                        nearestQuery.data.nearestPoint.lng,
+                      ],
                     }
-                  }}
-                  generatedStops={
-                    nearestQuery.data?.points
-                      ? nearestQuery.data.points.map((p: any) => ({
-                          id: p.id,
-                          label: p.label ?? undefined,
-                          lat: p.lat,
-                          lng: p.lng,
-                        }))
-                      : null
-                  }
-                  highlightPickupId={nearestQuery.data?.nearestPoint?.id ?? null}
-                  extraRoute={routePoints}
-                  clientA={clientA}
-                  clientB={clientB}
-                  matchPointFrom={
-                    selectedMatch
-                      ? { lat: selectedMatch.fromLat, lng: selectedMatch.fromLng }
-                      : matchQuery.data?.chosen
-                        ? {
-                            lat: matchQuery.data.chosen.fromLat,
-                            lng: matchQuery.data.chosen.fromLng,
-                          }
-                        : null
-                  }
-                  matchPointTo={
-                    selectedMatch
-                      ? { lat: selectedMatch.toLat, lng: selectedMatch.toLng }
-                      : matchQuery.data?.chosen
-                        ? {
-                            lat: matchQuery.data.chosen.toLat,
-                            lng: matchQuery.data.chosen.toLng,
-                          }
-                        : null
-                  }
-                  segments={segments}
-                  coords={
-                    nearestQuery.data?.nearestPoint
-                      ? {
-                          start: [
-                            nearestInput?.lat ?? selectedCoords?.[0] ?? 25.6866,
-                            nearestInput?.lng ?? selectedCoords?.[1] ?? -100.3161,
-                          ],
-                          end: [
-                            nearestQuery.data.nearestPoint.lat,
-                            nearestQuery.data.nearestPoint.lng,
-                          ],
-                        }
-                      : undefined
-                  }
-                />
-              </div>
-            </div>
+                  : undefined
+              }
+            />
+            {results && results.length > 0 && (
+              <ul className="mt-2 space-y-2">
+                {results.map((r: any) => (
+                  <li key={r.stopId} className="rounded border p-2">
+                    <div className="text-sm font-medium">
+                      {r.trip.routeTemplate?.fromLabel} →{" "}
+                      {r.trip.routeTemplate?.toLabel}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {r.distanceMeters} m · Asientos: {r.trip.seatsTaken}/
+                      {r.trip.seatsTotal}
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                        onClick={() => void handleJoin(r.trip.id, r.stopId)}
+                      >
+                        Unirse
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <div className="p-6 bg-white border border-gray-200 rounded-2xl shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <span className="text-red-600"></span> Resultados
-              </h3>
-              {results && results.length > 0 && (
-                <ul className="mt-4 space-y-4">
-                  {results.map((r: any) => (
-                    <li key={r.stopId} className="rounded-lg border p-4 shadow-sm hover:shadow-md transition-shadow duration-300">
-                      <div className="text-sm font-medium text-gray-800">
-                        {r.trip.routeTemplate?.fromLabel} → {r.trip.routeTemplate?.toLabel}
+            {/* Nearest-by-Gemini / local result preview */}
+            {nearestQuery.data && (
+              <div className="mt-4 rounded border bg-gray-50 p-3">
+                <h3 className="font-medium">Nearest point</h3>
+                <div className="text-sm text-gray-700">
+                  Índice: {nearestQuery.data.nearestIndex}
+                </div>
+                <div className="text-sm text-gray-700">
+                  ID: {nearestQuery.data.nearestPoint?.id ?? "-"}
+                </div>
+                <div className="text-sm text-gray-700">
+                  Posición:{" "}
+                  {nearestQuery.data.nearestPoint
+                    ? `${nearestQuery.data.nearestPoint.lat.toFixed(6)}, ${nearestQuery.data.nearestPoint.lng.toFixed(6)}`
+                    : "-"}
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                    onClick={() => {
+                      const id = nearestQuery.data?.nearestPoint?.id;
+                      if (id)
+                        navigator.clipboard
+                          ?.writeText(id)
+                          .then(() => toast.success("ID copiada"));
+                    }}
+                  >
+                    Copiar ID
+                  </button>
+                  <button
+                    className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                    onClick={() => {
+                      // zoom/search map around this point by triggering a nearby search
+                      const np = nearestQuery.data?.nearestPoint;
+                      if (np) {
+                        void handleSearchNearby(np.lat, np.lng);
+                      }
+                    }}
+                  >
+                    Buscar rutas en este punto
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Matches list */}
+            {matchQuery.data &&
+              matchQuery.data.matches &&
+              matchQuery.data.matches.length > 0 && (
+                <div className="mt-4 rounded border bg-white p-3">
+                  <h3 className="font-medium">Coincidencias</h3>
+                  <div className="mb-2 text-xs text-gray-500">
+                    {matchQuery.data.usedGemini
+                      ? `Gemini used — chosen index: ${matchQuery.data.chosenIndex + 1}`
+                      : null}
+                  </div>
+                  <ul className="mt-2 space-y-2">
+                    {matchQuery.data.matches.map((m: any, idx: number) => (
+                      <li
+                        key={m.id}
+                        className={`rounded border p-2 ${matchQuery.data.chosenIndex === idx ? "ring-2 ring-red-300" : ""}`}
+                      >
+                        <div className="text-sm font-medium">
+                          {m.fromLabel ?? "(desde)"} → {m.toLabel ?? "(hacia)"}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          Distancias: A→origen: {m.distanceToFromMeters} m ·
+                          B←destino: {m.distanceToToMeters} m · Total:{" "}
+                          {m.totalMeters} m
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                            onClick={() => void drawMatchRoutes(m)}
+                          >
+                            Ver ruta
+                          </button>
+                          <button
+                            className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                            onClick={() =>
+                              navigator.clipboard
+                                ?.writeText(m.id)
+                                .then(() => toast.success("ID copiada"))
+                            }
+                          >
+                            Copiar ID
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                      onClick={() => void drawChosenMatch()}
+                    >
+                      Dibujar elegido
+                    </button>
+                    <button
+                      className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                      onClick={() => {
+                        if (!clientA || !clientB) {
+                          toast.error(
+                            "Define Origen (A) y Destino (B) primero",
+                          );
+                          return;
+                        }
+                        // re-run match forcing local scoring
+                        setMatchInput({
+                          clientFromLat: clientA[0],
+                          clientFromLng: clientA[1],
+                          clientToLat: clientB[0],
+                          clientToLng: clientB[1],
+                          useGemini: false,
+                        });
+                      }}
+                    >
+                      Forzar local (sin Gemini)
+                    </button>
+                  </div>
+                  {matchQuery.data?.geminiRaw && (
+                    <div className="mt-3">
+                      <h4 className="text-sm font-medium">
+                        Gemini raw (debug)
+                      </h4>
+                      <pre className="max-h-48 overflow-auto rounded bg-gray-100 p-2 text-xs">
+                        {JSON.stringify(matchQuery.data?.geminiRaw, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                  {matchQuery.data?.localBest && (
+                    <div className="mt-3 rounded border bg-gray-50 p-2">
+                      <h4 className="text-sm font-medium">
+                        Local best (determinista)
+                      </h4>
+                      <div className="text-xs text-gray-700">
+                        Idx: {matchQuery.data.localBestIndex}
                       </div>
-                      <div className="text-xs text-gray-600">
-                        {r.distanceMeters} m · Asientos: {r.trip.seatsTaken}/{r.trip.seatsTotal}
+                      <div className="text-xs text-gray-700">
+                        {matchQuery.data.localBest.fromLabel} →{" "}
+                        {matchQuery.data.localBest.toLabel}
+                      </div>
+                      <div className="text-xs text-gray-700">
+                        A→from: {matchQuery.data.localBest.distanceToFromMeters}{" "}
+                        m · to→B: {matchQuery.data.localBest.distanceToToMeters}{" "}
+                        m · Total: {matchQuery.data.localBest.totalMeters} m
                       </div>
                       <div className="mt-2 flex gap-2">
                         <button
-                          className="transform rounded-lg bg-red-600 px-4 py-2 text-sm text-white shadow transition-all duration-300 ease-in-out hover:scale-105 hover:bg-red-700"
-                          onClick={() => void handleJoin(r.trip.id, r.stopId)}
+                          className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                          onClick={() =>
+                            void drawMatchRoutes(matchQuery.data.localBest)
+                          }
                         >
-                          Unirse
+                          Usar localBest
                         </button>
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    </div>
+                  )}
+                </div>
               )}
-            </div>
           </div>
-        </section>
+        </div>
       </div>
     </div>
   );
