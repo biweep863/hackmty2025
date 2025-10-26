@@ -74,3 +74,64 @@ html, body {
 /* Heading style */
 .heading-1 { font-family: var(--font-heading); letter-spacing: -0.02em; }
 
+/* Phone frame to simulate a mobile device */
+.phone-frame {
+  width: 360px;
+  border-radius: 34px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.6), rgba(0,0,0,0.35));
+  box-shadow: 0 20px 60px rgba(2,6,23,0.55);
+  border: 6px solid rgba(255,255,255,0.06);
+}
+.phone-screen {
+  background: var(--banorte-red, #ea2031);
+  border-radius: 26px;
+  padding: 22px;
+}
+
+/* Button hover/pop animation (subtle) */
+@keyframes buttonPop { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-4px) scale(1.03); } 100% { transform: translateY(0) scale(1); } }
+.btn-animate:hover { animation: buttonPop 360ms cubic-bezier(.2,.9,.2,1); }
+.btn-animate:active { transform: translateY(0) scale(.99); }
+
+/* Accept button style with sheen animation */
+@keyframes sheenMove { from { transform: translateX(-120%); } to { transform: translateX(120%); } }
+.btn-accept {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f3f4f6, #d1d5db); /* fallback */
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+.btn-accept:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 12px 30px rgba(0,0,0,0.18); }
+.btn-accept:active { transform: translateY(0) scale(.995); }
+.btn-accept::after {
+  content: "";
+  position: absolute;
+  left: -120%;
+  top: 0;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(67, 64, 64, 0.28) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-12deg);
+  pointer-events: none;
+}
+.btn-accept.btn-animate:hover::after { animation: sheenMove 900ms linear; }
+
+/* Subtle textured background overlay on top area */
+.bg-texture { position: relative; }
+.bg-texture::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+  width: 1100px;
+  height: 340px;
+  background-image: url('/banorte_texture.svg');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: cover;
+  opacity: 0.08;
+  pointer-events: none;
+}
+
