@@ -140,7 +140,8 @@ export const routesRouter = createTRPCRouter({
         return Math.sqrt(dx * dx + dy * dy);
       }
 
-      const results = candidates
+      // compute distances for all candidates and optionally return debug info
+      const computed = candidates
         .map((p) => {
           const plat = p.lat != null ? parseFloat(String(p.lat)) : undefined;
           const plng = p.lng != null ? parseFloat(String(p.lng)) : undefined;
@@ -160,9 +161,29 @@ export const routesRouter = createTRPCRouter({
             lng: plng,
             site: p.site,
             distanceMeters: Math.round(dist),
+            _raw: { dbLat: p.lat, dbLng: p.lng },
           };
         })
-        .filter(Boolean)
+        .filter(Boolean) as any[];
+
+      // server-side logs to help trace candidate counts (kept minimal)
+      try {
+        console.log("pickupPointsAlongRoute bbox", {
+          minLat,
+          maxLat,
+          minLng,
+          maxLng,
+          bufferMeters,
+        });
+        console.log(
+          "pickupPointsAlongRoute candidates before filter:",
+          candidates.length,
+        );
+      } catch (e) {
+        /* ignore logging errors */
+      }
+
+      const results = computed
         .filter((r: any) => r.distanceMeters <= bufferMeters)
         .sort((a: any, b: any) => a.distanceMeters - b.distanceMeters);
 
