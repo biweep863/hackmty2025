@@ -7,6 +7,7 @@ import {
   Polyline,
   Popup,
   CircleMarker,
+  useMapEvents,
 } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -18,6 +19,7 @@ export default function Map({
   generatedStops,
   extraRoute,
   highlightPickupId,
+  onMapClick,
 }: {
   coords?: { start: [number, number]; end: [number, number] };
   route?: [number, number][];
@@ -42,6 +44,7 @@ export default function Map({
     | null;
   extraRoute?: [number, number][] | null;
   highlightPickupId?: string | null;
+  onMapClick?: (lat: number, lng: number) => void;
 }) {
   const mtyPos = [25.6866, -100.3161];
 
@@ -59,6 +62,8 @@ export default function Map({
       zoom={12}
       style={{ height: "100%", width: "100%" }}
     >
+      {/* attach a click handler to the map if parent provided one */}
+      {onMapClick ? <MapClickHandler onMapClick={onMapClick} /> : null}
       <TileLayer {...tileLayerProps} />
 
       {coords?.start && (
@@ -106,4 +111,21 @@ export default function Map({
       ))}
     </MapContainer>
   );
+}
+
+function MapClickHandler({
+  onMapClick,
+}: {
+  onMapClick: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      try {
+        onMapClick(e.latlng.lat, e.latlng.lng);
+      } catch (err) {
+        // ignore
+      }
+    },
+  });
+  return null;
 }
