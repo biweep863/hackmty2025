@@ -268,38 +268,38 @@ export default function RiderPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-6">
-      <header className="mb-6 rounded-md">
-        <h1 className="text-3xl font-bold text-red-600">Buscar viajes</h1>
-        <p className="text-sm text-red-500">
+      <header className="mb-6 rounded-md bg-linear-to-r from-red-600 to-red-600 p-4 shadow-md">
+        <h1 className="text-3xl font-bold text-white">Buscar viajes</h1>
+        <p className="text-sm text-red-100">
           Busca viajes cercanos y únete a un pickup
         </p>
       </header>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="md:col-span-2">
-          <div className="mb-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-3">
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Buscar dirección"
-                className="min-w-0 flex-1 rounded border p-2 text-sm"
+                className="min-w-0 flex-1 rounded-lg border border-gray-300 p-3 text-sm shadow-sm focus:border-red-500 focus:ring focus:ring-red-200"
               />
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
-                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  className="transform rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:scale-105 hover:bg-red-600"
                   onClick={() => void handleSearchNearby()}
                 >
                   Buscar cerca
                 </button>
                 <button
-                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  className="transform rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:scale-105 hover:bg-red-600"
                   onClick={() => void handleNearest()}
                 >
                   Buscar punto más cercano
                 </button>
                 <button
-                  className="transform rounded border border-red-600 bg-white px-3 py-1 text-sm text-red-600 shadow-sm transition hover:scale-105 hover:bg-red-600 hover:text-white"
+                  className="transform rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 shadow-md transition hover:scale-105 hover:bg-gray-300"
                   onClick={() => clearAllRoutes()}
                 >
                   Limpiar ruta
@@ -307,18 +307,19 @@ export default function RiderPage() {
               </div>
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-3">
               <label className="flex items-center gap-2 px-2 text-sm">
                 <input
                   type="checkbox"
                   checked={useGemini}
                   onChange={(e) => setUseGemini(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-200"
                 />
                 <span>Usar Gemini</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-3">
                 <button
-                  className={`rounded border px-3 py-1 text-sm ${pinMode === "searchPin" ? "bg-red-600 text-white" : "border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium shadow-md transition hover:scale-105 ${pinMode === "searchPin" ? "bg-red-500 text-white" : "border border-red-500 bg-white text-red-500"}`}
                   onClick={() =>
                     setPinMode(pinMode === "searchPin" ? "none" : "searchPin")
                   }
@@ -326,7 +327,7 @@ export default function RiderPage() {
                   Pin
                 </button>
                 <button
-                  className={`rounded px-3 py-1 text-sm ${pinMode === "setA" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium shadow-md transition hover:scale-105 ${pinMode === "setA" ? "bg-red-500 text-white" : "border border-red-500 bg-white text-red-500"}`}
                   onClick={() =>
                     setPinMode(pinMode === "setA" ? "none" : "setA")
                   }
@@ -334,7 +335,7 @@ export default function RiderPage() {
                   Poner Origen A
                 </button>
                 <button
-                  className={`rounded px-3 py-1 text-sm ${pinMode === "setB" ? "bg-red-600 text-white" : "border border-red-600 bg-white text-red-600"} transform shadow-sm transition hover:scale-105`}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium shadow-md transition hover:scale-105 ${pinMode === "setB" ? "bg-red-500 text-white" : "border border-red-500 bg-white text-red-500"}`}
                   onClick={() =>
                     setPinMode(pinMode === "setB" ? "none" : "setB")
                   }
@@ -342,7 +343,7 @@ export default function RiderPage() {
                   Poner Destino B
                 </button>
                 <button
-                  className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                  className="transform rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:scale-105 hover:bg-red-600"
                   onClick={() => {
                     if (!clientA || !clientB) {
                       toast.error("Define Origen (A) y Destino (B) primero");
@@ -362,7 +363,7 @@ export default function RiderPage() {
               </div>
             </div>
           </div>
-          <div className="h-[70vh]">
+          <div className="h-[70vh] mx-auto lg:ml-16 rounded-lg border border-gray-300 shadow-lg">
             <Map
               onMapClick={(lat, lng) => {
                 if (pinMode === "searchPin") {
@@ -430,20 +431,18 @@ export default function RiderPage() {
               }
             />
             {results && results.length > 0 && (
-              <ul className="mt-2 space-y-2">
+              <ul className="mt-4 space-y-3">
                 {results.map((r: any) => (
-                  <li key={r.stopId} className="rounded border p-2">
-                    <div className="text-sm font-medium">
-                      {r.trip.routeTemplate?.fromLabel} →{" "}
-                      {r.trip.routeTemplate?.toLabel}
+                  <li key={r.stopId} className="rounded-lg border border-gray-200 p-4 shadow-md hover:shadow-lg">
+                    <div className="text-sm font-medium text-gray-800">
+                      {r.trip.routeTemplate?.fromLabel} → {r.trip.routeTemplate?.toLabel}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {r.distanceMeters} m · Asientos: {r.trip.seatsTaken}/
-                      {r.trip.seatsTotal}
+                      {r.distanceMeters} m · Asientos: {r.trip.seatsTaken}/{r.trip.seatsTotal}
                     </div>
-                    <div className="mt-2 flex gap-2">
+                    <div className="mt-3 flex gap-3">
                       <button
-                        className="transform rounded bg-red-600 px-3 py-1 text-sm text-white shadow transition hover:scale-105 hover:bg-red-700"
+                        className="transform rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:scale-105 hover:bg-red-600"
                         onClick={() => void handleJoin(r.trip.id, r.stopId)}
                       >
                         Unirse
