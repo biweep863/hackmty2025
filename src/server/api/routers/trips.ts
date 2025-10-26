@@ -33,6 +33,27 @@ export const tripsRouter = createTRPCRouter({
         }
       });
     }),
+  removeTrip: publicProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        userEmail: z.string()
+      })
+    )
+    .mutation(async ({ input }) => {
+      const user = await db.user.findUnique({
+        where: { email: input.userEmail },
+      });
+      if (!user) throw new Error("User not found");
+      return db.ride.update({
+        where: { id: input.id },
+        data: {
+          clients: {
+            disconnect: { id: user.id },
+          },
+        }
+      });
+    }),
   getMyTrips: publicProcedure
     .input(z.string())
     .query(async ({ input }) => {
