@@ -1,15 +1,26 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import Map from "./map";
 import { api } from "~/trpc/react";
 
 interface TripsListProps {
-  trips: any[] | undefined;
-  myTrips: any[] | undefined;
+  trips?: any[];
+  myTrips?: any[];
   userEmail?: string;
 }
 
-// Componente de loading
+type OSRMRoute = {
+  distance: number;
+  geometry: {
+    coordinates: [number, number][];
+  };
+};
+
+type OSRMResponse = {
+  routes?: OSRMRoute[];
+};
+
 function Loading() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -20,27 +31,56 @@ function Loading() {
 
 export default function TripsList({ trips, myTrips, userEmail }: TripsListProps) {
   const trpcCtx = api.useContext();
+  const [mapData, setMapData] = useState<{
+    coords?: { start: [number, number]; end: [number, number] };
+    route?: [number, number][];
+    origin?: string;
+    destination?: string;
+  }>();
+  const [showMap, setShowMap] = useState(false);
+  const [route, setRoute] = useState<[number, number][] | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [reservedAmount, setReservedAmount] = useState<number | null>(null);
+  const [loadingAction, setLoadingAction] = useState<
+    { id: string; action: "reserve" | "unreserve" } | null
+  >(null);
+  const [confirmUnreserve, setConfirmUnreserve] = useState<{
+    id: string;
+    price: number | null;
+  } | null>(null);
+
   const reserveTrip = api.trips.saveTrip.useMutation({
     onSuccess: () => {
-      // Recargar la consulta de mis viajes al reservar
-      trpcCtx.trips.getMyTrips.invalidate();
+      void trpcCtx.trips.getMyTrips.invalidate();
+      setShowSuccessModal(true);
+      setTimeout(() => setShowSuccessModal(false), 4000);
+      setLoadingAction(null);
     },
+    onError: () => setLoadingAction(null),
   });
 
-  const isReserved = (tripId: string) =>
-    myTrips && myTrips.some((trip) => trip.id === tripId);
+  const isReserved = (tripId: string) => myTrips?.some((trip) => trip.id === tripId);
 
   const sortedTrips = trips
-    ? [...trips].sort((a, b) => {
-        const aReserved = isReserved(a.id) ? 0 : 1;
-        const bReserved = isReserved(b.id) ? 0 : 1;
-        return aReserved - bReserved;
-      })
+    ? [...trips].sort((a, b) => (isReserved(a.id) ? 0 : 1) - (isReserved(b.id) ? 0 : 1))
     : [];
 
-  if (!trips || !myTrips) {
-    return <Loading />;
-  }
+  if (!trips || !myTrips) return <Loading />;
+
+  const getRoute = async (coords: { start: [number, number]; end: [number, number] }) => {
+    try {
+      const res = await fetch(
+        `https://router.project-osrm.org/route/v1/driving/${coords.start[1]},${coords.start[0]};${coords.end[1]},${coords.end[0]}?overview=full&geometries=geojson`
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as OSRMResponse;
+      const routeData = data.routes?.[0];
+      if (!routeData) return;
+      setRoute(routeData.geometry.coordinates.map(([lon, lat]) => [lat, lon]));
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -56,6 +96,27 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
             return (
               <article
                 key={t.id}
+                onClick={() => {
+                  const coords =
+                    t.latStart != null &&
+                    t.latEnd != null &&
+                    t.lngStart != null &&
+                    t.lngEnd != null
+                      ? {
+                          start: [Number(t.latStart), Number(t.lngStart)] as [number, number],
+                          end: [Number(t.latEnd), Number(t.lngEnd)] as [number, number],
+                        }
+                      : undefined;
+
+                  setMapData({
+                    coords,
+                    origin: t.origin,
+                    destination: t.destination,
+                  });
+
+                  if (coords) getRoute(coords);
+                  setShowMap(true);
+                }}
                 className="p-4 border rounded-md shadow-sm hover:shadow-lg transition-shadow bg-white"
               >
                 <div className="flex justify-between items-start mb-3">
@@ -80,41 +141,66 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between mt-3">
-                  <div className="text-sm text-gray-700">
-                    <div>
+                {userEmail && (
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="text-sm text-gray-700">
                       Duración: <span className="font-medium">{t.durationMin ?? "—"} min</span>
                     </div>
-                    <div>
-                      Precio: <span className="font-medium">{t.price ? `$${t.price}` : "—"}</span>
-                    </div>
+                    <button
+                      disabled={loadingAction?.id === t.id}
+                      className={`px-4 py-2 rounded-md text-white font-medium shadow transition-colors ${
+                        reserved ? "bg-gray-400 hover:bg-gray-500" : "bg-[#e60012] hover:bg-[#c30010]"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (reserved) {
+                          setConfirmUnreserve({ id: t.id, price: t.price ?? null });
+                          return;
+                        }
+                        setReservedAmount(t.price ?? null);
+                        setLoadingAction({ id: t.id, action: "reserve" });
+                        reserveTrip.mutate({ id: t.id, userEmail: userEmail ?? "" });
+                      }}
+                    >
+                      {loadingAction?.id === t.id
+                        ? loadingAction && loadingAction.action === "reserve"
+                          ? "Reservando..."
+                          : "Cancelando..."
+                        : reserved
+                        ? "Reservado"
+                        : "Reservar"}
+                    </button>
                   </div>
-
-                  {userEmail && (
-                    <div>
-                      <button
-                        disabled={reserved || reserveTrip.isLoading}
-                        className={`px-4 py-2 rounded-md text-white font-medium shadow transition-colors ${
-                          reserved
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-[#e60012] hover:bg-[#c30010]"
-                        }`}
-                        onClick={() => {
-                          if (reserved) return;
-                          reserveTrip.mutate({
-                            id: t.id,
-                            userEmail,
-                          });
-                        }}
-                      >
-                        {reserveTrip.isLoading && !reserved ? "Reservando..." : reserved ? "Reservado" : "Reservar"}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                )}
               </article>
             );
           })}
+        </div>
+      )}
+
+      {/* Modal del mapa con origen y destino */}
+      {showMap && mapData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowMap(false)} />
+          <div className="relative z-10 w-full max-w-4xl h-[75vh] bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="p-3 flex items-center justify-between border-b">
+              <div>
+                <div className="font-semibold text-lg text-gray-800">Vista del viaje</div>
+                <div className="text-sm text-gray-600">
+                  {mapData.origin} <span className="text-gray-400">→</span> {mapData.destination}
+                </div>
+              </div>
+              <button
+                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300"
+                onClick={() => setShowMap(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+            <div className="h-[calc(100%-56px)]">
+              <Map coords={mapData.coords} route={route || []} />
+            </div>
+          </div>
         </div>
       )}
     </div>

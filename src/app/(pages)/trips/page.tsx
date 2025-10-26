@@ -28,8 +28,6 @@ export default function TripsPage() {
         </div>
       </header>
 
-      <TripsList trips={trips} myTrips={myTrips} userEmail={userEmail.data?.email} />
-      {/* <TripsList trips={myTrips} title="Mis Viajes" userEmail={userEmail.data?.email} /> */}
-    </div>
+      <TripsList trips={trips} myTrips={myTrips} userEmail={userEmail.data?.email} />    </div>
   );
 }

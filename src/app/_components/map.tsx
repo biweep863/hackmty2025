@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   MapContainer,
   TileLayer,
@@ -62,6 +63,9 @@ export default function Map({
       zoom={12}
       style={{ height: "100%", width: "100%" }}
     >
+      {/* Ensure Leaflet default icon URLs are set (fixes missing marker icons in many bundlers) */}
+      {/* This runs in the client only */}
+      <InitLeafletIcons />
       {/* attach a click handler to the map if parent provided one */}
       {onMapClick ? <MapClickHandler onMapClick={onMapClick} /> : null}
       <TileLayer {...tileLayerProps} />
@@ -80,7 +84,7 @@ export default function Map({
         </Marker>
       )}
       {route?.length ? (
-        <Polyline positions={route} pathOptions={{ color: primary }} />
+        <Polyline positions={route} pathOptions={{ color: primary, weight: 4, opacity: 0.9 }} />
       ) : null}
       {extraRoute?.length ? (
         <Polyline
@@ -109,8 +113,39 @@ export default function Map({
           <Popup>{s.label ?? "Parada"}</Popup>
         </CircleMarker>
       ))}
+      {/* If a route is provided, add start/end markers to indicate direction */}
+      {route && route.length > 0 ? (
+        <>
+          {/* start */}
+          <Marker position={route[0] as [number, number]}>
+            <Popup>Inicio</Popup>
+          </Marker>
+          {/* end */}
+          {route.length > 1 && (
+            <Marker position={route[route.length - 1] as [number, number]}>
+              <Popup>Destino</Popup>
+            </Marker>
+          )}
+        </>
+      ) : null}
     </MapContainer>
   );
+}
+
+function InitLeafletIcons() {
+  // initialize once on client
+  React.useEffect(() => {
+    void import("leaflet").then((leafletModule) => {
+      const L = (leafletModule as any).default ?? leafletModule;
+      // Use CDN-hosted icons to avoid bundler asset issues
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+      });
+    });
+  }, []);
+  return null;
 }
 
 function MapClickHandler({
