@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import { useEffect } from "react";
+import L from "leaflet";
 import {
   MapContainer,
   TileLayer,
@@ -10,7 +11,17 @@ import {
   CircleMarker,
   useMapEvents,
 } from "react-leaflet";
+import { useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+
+// Fix Leaflet's default icon paths so markers render correctly in Next.js.
+// Use CDN-hosted marker images so we don't depend on bundler asset handling.
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl:
+    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+});
 
 export default function Map({
   coords,
@@ -21,7 +32,14 @@ export default function Map({
   extraRoute,
   highlightPickupId,
   onMapClick,
+  clientA,
+  clientB,
+  matchPointFrom,
+  matchPointTo,
+  segments,
 }: {
+  clientA?: [number, number] | null;
+  clientB?: [number, number] | null;
   coords?: { start: [number, number]; end: [number, number] };
   route?: [number, number][];
   distance?: number;
@@ -46,6 +64,9 @@ export default function Map({
   extraRoute?: [number, number][] | null;
   highlightPickupId?: string | null;
   onMapClick?: (lat: number, lng: number) => void;
+  matchPointFrom?: { lat: number; lng: number } | null;
+  matchPointTo?: { lat: number; lng: number } | null;
+  segments?: Array<[number, number][] | null> | null;
 }) {
   const mtyPos = [25.6866, -100.3161];
 
@@ -63,9 +84,13 @@ export default function Map({
       zoom={12}
       style={{ height: "100%", width: "100%" }}
     >
+      {/* fit map to extraRoute or segments when provided */}
+      {(extraRoute && extraRoute.length) || (segments && segments.length) ? (
+        <FitBounds extraRoute={extraRoute} segments={segments} />
+      ) : null}
       {/* Ensure Leaflet default icon URLs are set (fixes missing marker icons in many bundlers) */}
       {/* This runs in the client only */}
-      <InitLeafletIcons />
+      {/* <InitLeafletIcons /> */}
       {/* attach a click handler to the map if parent provided one */}
       {onMapClick ? <MapClickHandler onMapClick={onMapClick} /> : null}
       <TileLayer {...tileLayerProps} />
@@ -84,14 +109,36 @@ export default function Map({
         </Marker>
       )}
       {route?.length ? (
-        <Polyline positions={route} pathOptions={{ color: primary, weight: 4, opacity: 0.9 }} />
+        <Polyline
+          positions={route}
+          pathOptions={{ color: primary, weight: 4, opacity: 0.95 }}
+          smoothFactor={1}
+        />
       ) : null}
       {extraRoute?.length ? (
         <Polyline
           positions={extraRoute}
-          pathOptions={{ color: "#00AA00", dashArray: "6 6" }}
+          pathOptions={{ color: "#00AA00", weight: 5, opacity: 0.95 }}
+          smoothFactor={1}
         />
       ) : null}
+      {/* render each OSRM segment separately if provided */}
+      {segments && segments.length
+        ? segments.map((seg: [number, number][] | null, i: number) =>
+            seg && seg.length ? (
+              <Polyline
+                key={`seg-${i}`}
+                positions={seg}
+                pathOptions={{
+                  color: ["#0033cc", "#009900", "#ff6600"][i % 3],
+                  weight: 5,
+                  opacity: 0.95,
+                }}
+                smoothFactor={1}
+              />
+            ) : null,
+          )
+        : null}
       {pickupPoints?.map((p) => (
         <Marker key={p.id} position={[p.lat, p.lng]}>
           <Popup>
@@ -113,6 +160,28 @@ export default function Map({
           <Popup>{s.label ?? "Parada"}</Popup>
         </CircleMarker>
       ))}
+      {/* client A/B markers */}
+      {clientA ? (
+        <Marker position={clientA}>
+          <Popup>Cliente A (Origen)</Popup>
+        </Marker>
+      ) : null}
+      {clientB ? (
+        <Marker position={clientB}>
+          <Popup>Cliente B (Destino)</Popup>
+        </Marker>
+      ) : null}
+      {/* carpooler route endpoints (when viewing a match) */}
+      {matchPointFrom ? (
+        <Marker position={[matchPointFrom.lat, matchPointFrom.lng]}>
+          <Popup>Route start</Popup>
+        </Marker>
+      ) : null}
+      {matchPointTo ? (
+        <Marker position={[matchPointTo.lat, matchPointTo.lng]}>
+          <Popup>Route end</Popup>
+        </Marker>
+      ) : null}
       {/* If a route is provided, add start/end markers to indicate direction */}
       {route && route.length > 0 ? (
         <>
@@ -132,16 +201,43 @@ export default function Map({
   );
 }
 
+function FitBounds({
+  extraRoute,
+  segments,
+}: {
+  extraRoute?: [number, number][] | null;
+  segments?: Array<[number, number][] | null> | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    try {
+      const parts: [number, number][] = [];
+      if (extraRoute && extraRoute.length) parts.push(...extraRoute);
+      if (segments && segments.length) {
+        for (const s of segments) {
+          if (s && s.length) parts.push(...s);
+        }
+      }
+      if (parts.length) map.fitBounds(parts as any, { padding: [50, 50] });
+    } catch (e) {
+      // ignore
+    }
+  }, [extraRoute, segments, map]);
+  return null;
+}
+
 function InitLeafletIcons() {
   // initialize once on client
-  React.useEffect(() => {
+  useEffect(() => {
     void import("leaflet").then((leafletModule) => {
       const L = (leafletModule as any).default ?? leafletModule;
       // Use CDN-hosted icons to avoid bundler asset issues
       L.Icon.Default.mergeOptions({
-        iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+        iconRetinaUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
         iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-        shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+        shadowUrl:
+          "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
       });
     });
   }, []);
