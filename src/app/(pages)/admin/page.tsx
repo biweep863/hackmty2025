@@ -5,6 +5,7 @@ import { api } from "~/trpc/server";
 import AdminTabs from "../../_components/admin-tabs";
 import Sparkline from "../../_components/sparkline";
 import AdminTransactions from "../../_components/admin-transactions";
+import Image from "next/image";
 
 function fmtMoney(cents: number, currency = "USD") {
   return new Intl.NumberFormat("en-US", { style: "currency", currency }).format(
@@ -75,15 +76,29 @@ export default async function AdminPage() {
                     <h3 className="mb-2 text-sm font-semibold text-gray-800">
                       Daily Sales Trend
                     </h3>
-                    <div className="rounded border bg-white p-4">
-                      <Sparkline
-                        series={trend.series.map((d) => ({
-                          label: d.bucket,
-                          value: d.netCents,
-                        }))}
-                        height={80}
-                      />
-                      <div className="mt-4 overflow-x-auto">
+                    <div className="rounded border bg-white px-4 justify-center items-center">
+                      <div className="flex justify-center items-center w-full">
+                        <Image
+                          src="/Grafica.jpg"
+                          alt="Sparkline Gradient Background"
+                          width={350}
+                          height={150}
+                          className="rounded-lg object-contain"
+                          priority
+                        />
+                      </div>
+                      <div className="relative w-full h-auto overflow-hidden">
+                        <div className="relative z-10">
+                          <Sparkline
+                            series={trend.series.map((d) => ({
+                              label: d.bucket,
+                              value: d.netCents,
+                            }))}
+                            height={80}
+                          />
+                        </div>
+                      </div>
+                      <div className="overflow-x-auto">
                         <table className="w-full border-collapse text-sm">
                           <thead>
                             <tr className="bg-gray-50 text-left text-gray-600">
