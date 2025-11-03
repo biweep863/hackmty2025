@@ -361,7 +361,7 @@ export default function RiderPage() {
               </div>
             </div>
           </div>
-          <div className="h-[70vh] mx-auto lg:ml-16 rounded-lg border border-gray-300 shadow-lg">
+          <div className="mx-auto h-[70vh] rounded-lg border border-gray-300 shadow-lg lg:ml-16">
             <Map
               onMapClick={(lat, lng) => {
                 if (pinMode === "searchPin") {

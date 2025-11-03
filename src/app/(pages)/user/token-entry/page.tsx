@@ -30,16 +30,22 @@ export default function TokenEntryPage() {
       sessionStorage.setItem("banorte_state", state);
     } catch {}
     const returnUrl = encodeURIComponent("/user/token-entry");
-    router.push(`/user/banorte-simulate?state=${state}&return_url=${returnUrl}`);
+    router.push(
+      `/user/banorte-simulate?state=${state}&return_url=${returnUrl}`,
+    );
   };
 
   const verify = () => {
     setChecking(true);
     setMessage(null);
     setTimeout(() => {
-      const stored = sessionStorage.getItem("banorte_state") ?? localStorage.getItem("banorte_state");
+      const stored =
+        sessionStorage.getItem("banorte_state") ??
+        localStorage.getItem("banorte_state");
       if (!stored) {
-        setMessage("No se encontró el estado guardado. Asegúrate de generar el código desde esta pestaña.");
+        setMessage(
+          "No se encontró el estado guardado. Asegúrate de generar el código desde esta pestaña.",
+        );
         setChecking(false);
         return;
       }
@@ -63,25 +69,45 @@ export default function TokenEntryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 animate-pop">
-        <h2 className="text-2xl font-semibold mb-2 heading-1">Introduce el código</h2>
-  <p className="text-sm text-gray-600 mb-6">Pulsa el botón Generar código de acceso desde el app de Banorte.</p>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+      <div className="animate-pop w-full max-w-md rounded-2xl bg-white p-8 shadow-lg">
+        <h2 className="heading-1 mb-2 text-2xl font-semibold">
+          Introduce el código
+        </h2>
+        <p className="mb-6 text-sm text-gray-600">
+          Pulsa el botón Generar código de acceso desde el app de Banorte.
+        </p>
 
         <div className="space-y-3">
-          <div className="p-4 bg-gray-50 rounded-md">
+          <div className="rounded-md bg-gray-50 p-4">
             <label className="text-xs text-gray-500">Código (6 dígitos)</label>
-            <input value={tokenInput} onChange={(e) => setTokenInput(e.target.value)} className="w-full mt-2 ui-input token-box text-2xl text-center" placeholder="— — — — — —" />
+            <input
+              value={tokenInput}
+              onChange={(e) => setTokenInput(e.target.value)}
+              className="ui-input token-box mt-2 w-full text-center text-2xl"
+              placeholder="— — — — — —"
+            />
           </div>
 
           <div className="flex gap-3">
-            <button onClick={generateAndGo} className="flex-1 px-4 py-3 bg-[#e60012] text-white rounded-lg primary-btn">Generar código</button>
-            <button onClick={verify} className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg">Verificar</button>
+            <button
+              onClick={generateAndGo}
+              className="primary-btn flex-1 rounded-lg bg-[#e60012] px-4 py-3 text-white"
+            >
+              Generar código
+            </button>
+            <button
+              onClick={verify}
+              className="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-3"
+            >
+              Verificar
+            </button>
           </div>
 
-          {checking && <div className="text-sm text-gray-600">Verificando...</div>}
+          {checking && (
+            <div className="text-sm text-gray-600">Verificando...</div>
+          )}
           {message && <div className="text-sm text-gray-700">{message}</div>}
-
         </div>
       </div>
     </div>

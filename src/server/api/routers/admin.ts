@@ -91,7 +91,10 @@ export const adminRouter = createTRPCRouter({
       );
 
       const tripsCount = rides.length;
-      const seatsSold = rides.reduce((acc, r) => acc + (r.clients?.length ?? 0), 0);
+      const seatsSold = rides.reduce(
+        (acc, r) => acc + (r.clients?.length ?? 0),
+        0,
+      );
       const seatsCapacity = 0; // not tracked in Ride model
       const grossCents = financials.reduce((acc, f) => acc + f.grossCents, 0);
       const netCents = financials.reduce((acc, f) => acc + f.netCents, 0);
@@ -131,7 +134,9 @@ export const adminRouter = createTRPCRouter({
         orderBy: { createdAt: "asc" },
       });
 
-      const fin = rides.map((r) => computeTripFinanceForRide({ ride: r as any }));
+      const fin = rides.map((r) =>
+        computeTripFinanceForRide({ ride: r as any }),
+      );
       const buckets = new Map<
         string,
         { gross: number; net: number; count: number }
@@ -195,17 +200,25 @@ export const adminRouter = createTRPCRouter({
         const p = (r as any).price;
         if (p != null) prices.push(Number(p));
       }
-      const mean = prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-      const variance = prices.length ? prices.reduce((a, b) => a + Math.pow(Number(b) - mean, 2), 0) / prices.length : 0;
+      const mean = prices.length
+        ? prices.reduce((a, b) => a + b, 0) / prices.length
+        : 0;
+      const variance = prices.length
+        ? prices.reduce((a, b) => a + Math.pow(Number(b) - mean, 2), 0) /
+          prices.length
+        : 0;
       const std = Math.sqrt(variance);
 
       return rides.map((r) => {
         const fin = computeTripFinanceForRide({ ride: r as any });
-        const priceNum = (r as any).price != null ? Number((r as any).price) : null;
+        const priceNum =
+          (r as any).price != null ? Number((r as any).price) : null;
         const suspicious =
           fin.seatsTaken === 0 ||
           priceNum == null ||
-          (priceNum != null && std > 0 && (priceNum > mean + 3 * std || priceNum < mean - 3 * std));
+          (priceNum != null &&
+            std > 0 &&
+            (priceNum > mean + 3 * std || priceNum < mean - 3 * std));
         return {
           id: fin.id,
           createdAt: fin.createdAt,

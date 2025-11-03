@@ -15,7 +15,7 @@ export const appRouter = createTRPCRouter({
   trips: tripsRouter,
   admin: adminRouter,
   register: registerRouter,
-  routes: routesRouter
+  routes: routesRouter,
 });
 
 // export type definition of API

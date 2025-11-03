@@ -413,9 +413,9 @@ export default function DriverPage() {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl p-6 font-poppins">
+    <div className="font-poppins mx-auto max-w-5xl p-6">
       <header
-        className="mb-6 overflow-hidden rounded-md shadow-md transform transition-transform duration-300 hover:scale-105"
+        className="mb-6 transform overflow-hidden rounded-md shadow-md transition-transform duration-300 hover:scale-105"
         style={{ background: primary }}
       >
         <div className="p-6">
@@ -437,7 +437,7 @@ export default function DriverPage() {
                 value={origin}
                 onChange={(e) => setOrigin(e.target.value)}
                 placeholder="Origen"
-                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200 transition-shadow duration-300 hover:shadow-md"
+                className="w-full rounded border border-gray-300 p-2 shadow-sm transition-shadow duration-300 hover:shadow-md focus:ring-2 focus:ring-red-200"
               />
               <SuggestionPortal
                 anchorRef={originRef}
@@ -454,7 +454,7 @@ export default function DriverPage() {
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
                 placeholder="Destino"
-                className="w-full rounded border border-gray-300 p-2 shadow-sm focus:ring-2 focus:ring-red-200 transition-shadow duration-300 hover:shadow-md"
+                className="w-full rounded border border-gray-300 p-2 shadow-sm transition-shadow duration-300 hover:shadow-md focus:ring-2 focus:ring-red-200"
               />
               <SuggestionPortal
                 anchorRef={destRef}
@@ -469,7 +469,7 @@ export default function DriverPage() {
 
             <div className="mt-2 flex gap-2">
               <button
-                className={`rounded px-3 py-1 text-sm transform transition-transform duration-300 hover:scale-105 shadow-md hover:shadow-lg ${pinMode === "origin" ? "bg-red-600 text-white" : "bg-white"}`}
+                className={`transform rounded px-3 py-1 text-sm shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg ${pinMode === "origin" ? "bg-red-600 text-white" : "bg-white"}`}
                 onClick={() =>
                   setPinMode(pinMode === "origin" ? "none" : "origin")
                 }
@@ -477,7 +477,7 @@ export default function DriverPage() {
                 Pin Origen
               </button>
               <button
-                className={`rounded px-3 py-1 text-sm transform transition-transform duration-300 hover:scale-105 shadow-md hover:shadow-lg ${pinMode === "destination" ? "bg-red-600 text-white" : "bg-white"}`}
+                className={`transform rounded px-3 py-1 text-sm shadow-md transition-transform duration-300 hover:scale-105 hover:shadow-lg ${pinMode === "destination" ? "bg-red-600 text-white" : "bg-white"}`}
                 onClick={() =>
                   setPinMode(pinMode === "destination" ? "none" : "destination")
                 }
@@ -490,7 +490,7 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div className="z-0 mt-4 h-[60vh] w-full overflow-hidden rounded-md md:h-[72vh] transform transition-transform duration-300 hover:scale-105">
+          <div className="z-0 mt-4 h-[60vh] w-full transform overflow-hidden rounded-md transition-transform duration-300 hover:scale-105 md:h-[72vh]">
             <Map
               coords={coords ?? undefined}
               route={route ?? undefined}
@@ -502,7 +502,7 @@ export default function DriverPage() {
         </div>
 
         <aside className="space-y-4">
-          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
+          <div className="transform rounded bg-white p-4 shadow-md transition-transform duration-300 hover:scale-105">
             <div className="space-y-3">
               <div>
                 <div className="text-sm text-gray-500">Distancia</div>
@@ -525,10 +525,10 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
+          <div className="transform rounded bg-white p-4 shadow-md transition-transform duration-300 hover:scale-105">
             <div className="grid grid-cols-1 gap-2">
               <button
-                className="w-full rounded-md bg-red-600 px-4 py-2 font-medium text-white shadow hover:bg-red-700 transform transition-transform duration-300 hover:scale-105"
+                className="w-full transform rounded-md bg-red-600 px-4 py-2 font-medium text-white shadow transition-transform duration-300 hover:scale-105 hover:bg-red-700"
                 onClick={sendRide}
               >
                 Enviar ruta
@@ -536,7 +536,7 @@ export default function DriverPage() {
 
               <div className="grid grid-cols-2 gap-2">
                 <button
-                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
+                  className="transform rounded-md bg-white px-3 py-2 shadow-md transition-transform duration-300 hover:scale-105"
                   onClick={() => {
                     setOrigin("");
                     setDestination("");
@@ -549,22 +549,16 @@ export default function DriverPage() {
                 >
                   Limpiar
                 </button>
-                <button
-                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                >
+                <button className="transform rounded-md bg-white px-3 py-2 shadow-md transition-transform duration-300 hover:scale-105">
                   Buscar puntos
                 </button>
-                <button
-                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                >
+                <button className="transform rounded-md bg-white px-3 py-2 shadow-md transition-transform duration-300 hover:scale-105">
                   Generar paradas
                 </button>
               </div>
 
               <div className="flex flex-col gap-2">
-                <button
-                  className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                >
+                <button className="transform rounded-md bg-white px-3 py-2 shadow-md transition-transform duration-300 hover:scale-105">
                   Guardar plantilla
                 </button>
                 <div className="flex items-center gap-2">
@@ -572,7 +566,7 @@ export default function DriverPage() {
                     type="datetime-local"
                     value={departureAtInput}
                     onChange={(e) => setDepartureAtInput(e.target.value)}
-                    className="flex-1 rounded bg-white p-1 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
+                    className="flex-1 transform rounded bg-white p-1 shadow-md transition-shadow duration-300 hover:shadow-lg"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -580,7 +574,7 @@ export default function DriverPage() {
                     type="number"
                     value={seatsTotalInput}
                     onChange={(e) => setSeatsTotalInput(Number(e.target.value))}
-                    className="w-20 rounded bg-white p-1 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
+                    className="w-20 transform rounded bg-white p-1 shadow-md transition-shadow duration-300 hover:shadow-lg"
                     min={1}
                   />
                 </div>
@@ -588,12 +582,12 @@ export default function DriverPage() {
             </div>
           </div>
 
-          <div className="rounded bg-white p-4 shadow-md transform transition-transform duration-300 hover:scale-105">
+          <div className="transform rounded bg-white p-4 shadow-md transition-transform duration-300 hover:scale-105">
             <label className="text-sm text-gray-600">Radio (m)</label>
             <select
               value={bufferMeters}
               onChange={(e) => setBufferMeters(Number(e.target.value))}
-              className="mt-2 w-full rounded bg-white p-2 shadow-md transform transition-shadow duration-300 hover:shadow-lg"
+              className="mt-2 w-full transform rounded bg-white p-2 shadow-md transition-shadow duration-300 hover:shadow-lg"
             >
               <option value={500}>500</option>
               <option value={1000}>1000</option>
@@ -601,7 +595,6 @@ export default function DriverPage() {
               <option value={2000}>2000</option>
             </select>
           </div>
-
         </aside>
       </div>
     </div>

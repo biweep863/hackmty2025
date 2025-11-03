@@ -22,9 +22,7 @@ export const registerRouter = createTRPCRouter({
       });
       return user;
     }),
-getUser: publicProcedure
-  .input(z.string())
-  .query(async ({ input }) => {
+  getUser: publicProcedure.input(z.string()).query(async ({ input }) => {
     // Buscar usuario por email
     const user = await db.user.findUnique({
       where: { email: input },
@@ -38,25 +36,27 @@ getUser: publicProcedure
       email: user.email,
     };
   }),
-    isUser: publicProcedure
-    .input(z.string())
-    .query(async ({ input }) => {
-      const user = await db.user.findUnique({
-        where: { email: input },
-      });
-      return user ? true : false;
-    }),
-    saveString: publicProcedure
+  isUser: publicProcedure.input(z.string()).query(async ({ input }) => {
+    const user = await db.user.findUnique({
+      where: { email: input },
+    });
+    return user ? true : false;
+  }),
+  saveString: publicProcedure
     .input(z.string()) // solo un string
     .mutation(({ input }) => {
       const filePath = path.join(process.cwd(), "src/user.json");
 
       // Guardar el string en un JSON
-      fs.writeFileSync(filePath, JSON.stringify({ email: input }, null, 2), "utf-8");
+      fs.writeFileSync(
+        filePath,
+        JSON.stringify({ email: input }, null, 2),
+        "utf-8",
+      );
 
       return { success: true };
     }),
-    getEmail: publicProcedure.query(() => {
+  getEmail: publicProcedure.query(() => {
     const filePath = path.join(process.cwd(), "src/user.json");
 
     const fileContent = fs.readFileSync(filePath, "utf-8");

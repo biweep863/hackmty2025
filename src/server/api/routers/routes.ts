@@ -16,7 +16,6 @@ const routeInput = z.object({
 });
 
 export const routesRouter = createTRPCRouter({
-
   // Search nearby trips by proximity to any TripStop (or pickup points)
   searchNearbyTrips: publicProcedure
     .input(
@@ -649,7 +648,7 @@ export const routesRouter = createTRPCRouter({
       let localNearestDist = Infinity;
       for (let i = 0; i < limited.length; i++) {
         const p = limited[i] ?? { lat: 0, lng: 0 };
-        const d = haversineMeters(lat, lng, p.lat , p.lng);
+        const d = haversineMeters(lat, lng, p.lat, p.lng);
         if (d < localNearestDist) {
           localNearestDist = d;
           localNearestIndex = i;

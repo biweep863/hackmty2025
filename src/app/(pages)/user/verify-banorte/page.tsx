@@ -61,8 +61,8 @@ export default function VerifyBanortePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-6 py-12">
-      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center animate-pop">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-6 py-12">
+      <div className="animate-pop w-full max-w-md rounded-xl bg-white p-8 text-center shadow-lg">
         {status === "checking" && (
           <div className="flex flex-col items-center gap-4">
             <div className="spinner" />
@@ -72,19 +72,41 @@ export default function VerifyBanortePage() {
         {status === "ok" && (
           <div className="flex flex-col items-center gap-4">
             <div className="checkmark mx-auto">
-              <svg viewBox="0 0 24 24"><path d="M4 12l4 4L20 6" /></svg>
+              <svg viewBox="0 0 24 24">
+                <path d="M4 12l4 4L20 6" />
+              </svg>
             </div>
-            <div className="text-green-600 font-medium">{message}</div>
+            <div className="font-medium text-green-600">{message}</div>
           </div>
         )}
         {status === "error" && (
           <div className="flex flex-col items-center gap-4">
-            <div className="text-red-600 font-medium">{message}</div>
-            <div className="text-sm text-gray-600">Estado esperado (guardado): <span className="font-mono">{localStorage.getItem('banorte_state') ?? '(vacío)'}</span></div>
-            <div className="text-sm text-gray-600">Estado recibido (URL): <span className="font-mono">{params.get('state') ?? '(vacío)'}</span></div>
+            <div className="font-medium text-red-600">{message}</div>
+            <div className="text-sm text-gray-600">
+              Estado esperado (guardado):{" "}
+              <span className="font-mono">
+                {localStorage.getItem("banorte_state") ?? "(vacío)"}
+              </span>
+            </div>
+            <div className="text-sm text-gray-600">
+              Estado recibido (URL):{" "}
+              <span className="font-mono">
+                {params.get("state") ?? "(vacío)"}
+              </span>
+            </div>
             <div className="flex gap-3">
-              <button onClick={() => router.push('/user/link-banorte')} className="px-4 py-2 bg-white border border-gray-200 rounded-md">Reintentar vinculación</button>
-              <button onClick={forceLink} className="px-4 py-2 bg-[#e60012] text-white rounded-md">Forzar vinculación (demo)</button>
+              <button
+                onClick={() => router.push("/user/link-banorte")}
+                className="rounded-md border border-gray-200 bg-white px-4 py-2"
+              >
+                Reintentar vinculación
+              </button>
+              <button
+                onClick={forceLink}
+                className="rounded-md bg-[#e60012] px-4 py-2 text-white"
+              >
+                Forzar vinculación (demo)
+              </button>
             </div>
           </div>
         )}

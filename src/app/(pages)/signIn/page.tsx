@@ -24,13 +24,13 @@ export default function AuthPage() {
       setStatus("Por favor completa usuario/email y contraseña.");
       return;
     }
-    if(!isUser.data) {
+    if (!isUser.data) {
       setStatus("Usuario no encontrado. Por favor regístrate.");
       return;
     }
     setLoading(true);
     try {
-    saveString.mutate(identifier);
+      saveString.mutate(identifier);
     } catch (err) {
       console.error(err);
       setStatus("Error al enviar. Revisa la consola.");
@@ -81,13 +81,29 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="primary-btn rounded-xl bg-linear-to-r from-red-600 to-red-500 px-6 py-2 text-white shadow-lg flex items-center justify-center gap-2"
+              className="primary-btn flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-red-600 to-red-500 px-6 py-2 text-white shadow-lg"
             >
               {loading ? (
                 <>
-                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                  <svg
+                    className="h-4 w-4 animate-spin text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    ></path>
                   </svg>
                   <span>Enviando...</span>
                 </>

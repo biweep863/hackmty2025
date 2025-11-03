@@ -77,7 +77,12 @@ export default function RootLayout({
         <Toaster />
         <Navbar />
         <TRPCReactProvider>
-          <div className="min-h-screen" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 4rem)' }}>
+          <div
+            className="min-h-screen"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom) + 4rem)",
+            }}
+          >
             <AuthGate>{children}</AuthGate>
           </div>
         </TRPCReactProvider>
