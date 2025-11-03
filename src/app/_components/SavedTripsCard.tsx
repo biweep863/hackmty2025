@@ -4,24 +4,27 @@ import React, { useState } from "react";
 import Map from "./map";
 import Loading from "./Loading";
 import { api } from "~/trpc/react";
+import type { Decimal } from "@prisma/client/runtime/library";
+
+type Price = number | Decimal | null;
 
 interface Trip {
   id: string;
   origin: string;
   destination: string;
   driver?: { name?: string; email?: string };
-  distanceKm?: number;
-  durationMin?: number;
-  latStart?: number;
-  lngStart?: number;
-  latEnd?: number;
-  lngEnd?: number;
-  price?: number | null;
+  distanceKm?: number | Decimal;
+  durationMin?: number | Decimal | null;
+  latStart?: number | Decimal;
+  lngStart?: number | Decimal;
+  latEnd?: number | Decimal;
+  lngEnd?: number | Decimal;
+  price?: Price;
 }
 
 interface TripsListProps {
-  trips?: Trip[];
-  myTrips?: Trip[];
+  trips: Trip[];
+  myTrips: Trip[];
   userEmail?: string;
 }
 
@@ -35,9 +38,9 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
   const [showMap, setShowMap] = useState(false);
   const [route, setRoute] = useState<[number, number][] | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [reservedAmount, setReservedAmount] = useState<number | null>(null);
+  const [reservedAmount, setReservedAmount] = useState<Price>(null);
   const [loadingAction, setLoadingAction] = useState<{ id: string; action: "reserve" | "unreserve" } | null>(null);
-  const [confirmUnreserve, setConfirmUnreserve] = useState<{ id: string; price: number | null } | null>(null);
+  const [confirmUnreserve, setConfirmUnreserve] = useState<{ id: string; price: Price | null } | null>(null);
 
   const reserveTrip = api.trips.saveTrip.useMutation({
     onSuccess: () => {
@@ -62,10 +65,10 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
 
   if (!trips || !myTrips) return <Loading />;
 
-  const formatPrice = (p: number | null | undefined) => {
+  const formatPrice = (p: Price) => {
     if (p == null) return "—";
     try {
-      return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(p);
+      return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(Number(p));
     } catch (e) {
       return `$${p}`;
     }
@@ -87,7 +90,7 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto min-h-screen bg-gradient-to-br from-gray-100 to-gray-50 font-inter">
+    <div className="p-6 max-w-5xl mx-auto min-h-screen bg-linear-to-br from-gray-100 to-gray-50 font-inter">
 
       {sortedTrips.length === 0 ? (
         <div className="p-8 text-center text-gray-600 rounded-md border border-gray-200">No hay viajes disponibles.</div>
@@ -129,7 +132,7 @@ export default function TripsList({ trips, myTrips, userEmail }: TripsListProps)
 
                 {userEmail && (
                   <div className="flex justify-between items-center mt-4">
-                    <div className="text-sm text-gray-700">Duración: <span className="font-medium">{t.durationMin ?? "—"} min</span></div>
+                    <div className="text-sm text-gray-700">Duración: <span className="font-medium">{Number(t.durationMin) ?? "—"} min</span></div>
                     <button
                       disabled={loadingAction?.id === t.id}
                       className={`px-4 py-2 rounded-lg font-medium shadow text-white transition-transform transform hover:scale-105 ${

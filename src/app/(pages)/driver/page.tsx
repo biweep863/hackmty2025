@@ -150,12 +150,7 @@ export default function DriverPage() {
   const [price, setPrice] = useState<number | null>(null);
 
   const ride = api.carpooler.pushRide.useMutation();
-  const saveStops = api.routes.saveGeneratedStops.useMutation();
-  const createTemplate = api.routes.create.useMutation();
-  const createTrip = api.routes.createTrip.useMutation();
-  const listMyTrips = api.routes.listMyTrips.useQuery(undefined, {
-    enabled: true,
-  });
+
   const getEmail = api.register.getEmail.useQuery();
   const userEmail = api.register.getUser.useQuery(getEmail.data ?? "");
 
@@ -250,33 +245,6 @@ export default function DriverPage() {
     if (!coords) return;
     const toastId = toast.loading("Enviando ruta...");
     try {
-      // Persist any generatedStops first so riders can discover them.
-      if (generatedStops && generatedStops.length > 0) {
-        try {
-          const created = await saveStops.mutateAsync(
-            generatedStops.map((s) => ({
-              label: s.label ?? "Parada",
-              lat: s.lat,
-              lng: s.lng,
-            })),
-          );
-          // Update local generatedStops with persisted ids
-          setGeneratedStops(
-            created.map((c: any) => ({
-              id: c.id,
-              lat: Number(c.lat),
-              lng: Number(c.lng),
-              label: c.label ?? "Parada",
-            })),
-          );
-        } catch (err) {
-          console.error(
-            "Error saving generated stops before sending ride:",
-            err,
-          );
-          // proceed anyway
-        }
-      }
       await ride.mutateAsync({
         origin,
         destination,
@@ -305,121 +273,6 @@ export default function DriverPage() {
   const [departureAtInput, setDepartureAtInput] = useState<string>("");
   const [seatsTotalInput, setSeatsTotalInput] = useState<number>(3);
 
-  const pickupInput = coords
-    ? {
-        fromLat: coords.start[0],
-        fromLng: coords.start[1],
-        toLat: coords.end[0],
-        toLng: coords.end[1],
-        bufferMeters: bufferMeters,
-        // no debug flag in normal flow
-      }
-    : { fromLat: 0, fromLng: 0, toLat: 0, toLng: 0, bufferMeters: 600 };
-
-  const pickupQuery = api.routes.pickupPointsAlongRoute.useQuery(pickupInput, {
-    enabled: false,
-  });
-
-  const handleFindPickupPoints = async () => {
-    if (!coords) return toast.error("Selecciona origen y destino primero");
-    try {
-      // Refetch the query and read the returned data (refetch returns the fresh result)
-      const refetchResult = await pickupQuery.refetch();
-      // refetchResult contains the fresh query result; we proceed using its data
-      const points = (refetchResult.data ?? []).filter(Boolean) as any[];
-      const count = points.length;
-      if (count === 0) {
-        toast("No se encontraron puntos cercanos. Prueba aumentar el radio.");
-        return;
-      }
-
-      // Try to persist the found pickup points as generated stops so the driver
-      // can include them in a Trip and riders can search against them.
-      try {
-        const created = await saveStops.mutateAsync(
-          points.map((p) => ({
-            label: p.label ?? p.site?.name ?? "Punto",
-            lat: Number(p.lat),
-            lng: Number(p.lng),
-          })),
-        );
-        setGeneratedStops(
-          created.map((c: any) => ({
-            id: c.id,
-            lat: Number(c.lat),
-            lng: Number(c.lng),
-            label: c.label ?? "Punto",
-          })),
-        );
-        toast.success(
-          `Se encontraron ${count} puntos cercanos y se guardaron ${created.length}`,
-        );
-      } catch (err) {
-        console.error("Error saving pickup points:", err);
-        // Fallback: show them locally even if saving failed
-        setGeneratedStops(
-          points.map((p, i) => ({
-            id: `p-${i}`,
-            lat: Number(p.lat),
-            lng: Number(p.lng),
-            label: p.label ?? p.site?.name ?? "Punto",
-          })),
-        );
-        toast.success(`Se encontraron ${count} puntos cercanos (no guardados)`);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error al buscar puntos de recogida");
-    }
-  };
-
-  const handleCreateTemplate = async () => {
-    if (!coords)
-      return toast.error(
-        "Selecciona origen y destino antes de guardar plantilla",
-      );
-    try {
-      const res = await createTemplate.mutateAsync({
-        fromLabel: origin || "Origen",
-        fromLat: coords.start[0],
-        fromLng: coords.start[1],
-        toLabel: destination || "Destino",
-        toLat: coords.end[0],
-        toLng: coords.end[1],
-      });
-      setTemplateId(res.id);
-      toast.success("Plantilla guardada");
-    } catch (err) {
-      console.error(err);
-      toast.error("Error guardando plantilla");
-    }
-  };
-
-  const handleCreateTrip = async () => {
-    if (!templateId)
-      return toast.error("Crea o selecciona una plantilla primero");
-    if (!departureAtInput)
-      return toast.error("Selecciona fecha y hora de salida");
-    try {
-      const res = await createTrip.mutateAsync({
-        routeTemplateId: templateId,
-        departureAt: new Date(departureAtInput).toISOString(),
-        seatsTotal: seatsTotalInput,
-        stops: (generatedStops ?? []).map((s, i) => ({
-          label: s.label,
-          lat: s.lat,
-          lng: s.lng,
-          ord: i,
-        })),
-      });
-      toast.success("Trip creado");
-      // refresh trips
-      void listMyTrips.refetch();
-    } catch (err) {
-      console.error(err);
-      toast.error("Error creando Trip");
-    }
-  };
   const handleMapClick = (lat: number, lng: number) => {
     if (pinMode === "none") return;
     const pos: [number, number] = [lat, lng];
@@ -438,50 +291,6 @@ export default function DriverPage() {
     // after placing one pin, turn off pin mode
     setPinMode("none");
   };
-
-  // distance from point to segment (meters)
-  function pointToSegmentDistanceMeters(
-    px: number,
-    py: number,
-    ax: number,
-    ay: number,
-    bx: number,
-    by: number,
-  ) {
-    // compute projection of P onto AB in lat/lng space, then compute haversine
-    const toRad = (v: number) => (v * Math.PI) / 180;
-    const latFactor = (lat: number) => Math.cos(toRad(lat));
-
-    // Convert to simple euclidean using degrees scaled by latitude
-    const mx = (v: number) => v;
-    const my = (v: number) => v * latFactor((ay + by) / 2);
-
-    const pax = mx(px),
-      pay = my(py);
-    const aax = mx(ax),
-      aay = my(ay);
-    const bbx = mx(bx),
-      bby = my(by);
-
-    const vx = bbx - aax;
-    const vy = bby - aay;
-    const wx = pax - aax;
-    const wy = pay - aay;
-    const c1 = vx * wx + vy * wy;
-    const c2 = vx * vx + vy * vy;
-    let t = c2 === 0 ? 0 : c1 / c2;
-    t = Math.max(0, Math.min(1, t));
-    const projx = aax + vx * t;
-    const projy = aay + vy * t;
-
-    // distance in degrees -> convert to meters using haversine
-    // convert proj back to lat/lng: projx (lon) and projy scaled lon; we need approximation: find proj lat by linear interpolation
-    // We'll compute distance between P and point linearly approximated on original segment using t
-    const projLat = ay + (by - ay) * t;
-    const projLng = ax + (bx - ax) * t;
-
-    return haversineMeters(py, px, projLat, projLng);
-  }
 
   // Find nearest pickup (from pickupQuery data and generatedStops) to extraCoords.
   // no extra-route helper; simplified A->B flow
@@ -559,39 +368,6 @@ export default function DriverPage() {
     }
     return stops;
   }
-
-  const handleGenerateStops = () => {
-    if (!route || route.length < 2)
-      return toast.error("Primero genera la ruta");
-    const spacing = bufferMeters || 1000;
-    const stops = sampleRoute(route, spacing);
-    if (stops.length === 0) {
-      toast("No se generaron paradas en la ruta");
-      return;
-    }
-    (async () => {
-      try {
-        const created = await saveStops.mutateAsync(
-          stops.map((s) => ({ label: "Sugerido", lat: s.lat, lng: s.lng })),
-        );
-        setGeneratedStops(
-          created.map((c: any) => ({
-            id: c.id,
-            lat: parseFloat(String(c.lat)),
-            lng: parseFloat(String(c.lng)),
-            label: c.label ?? "Sugerido",
-          })),
-        );
-        toast.success(`Generadas y guardadas ${created.length} paradas`);
-      } catch (err) {
-        console.error(err);
-        setGeneratedStops(stops.map((s) => ({ ...s, label: "Sugerido" })));
-        toast.success(`Generadas ${stops.length} paradas (localmente)`);
-      }
-    })();
-  };
-
-  const handleClearStops = () => setGeneratedStops(null);
 
   const mtyPos = [25.6866, -100.3161];
 
@@ -719,11 +495,6 @@ export default function DriverPage() {
               coords={coords ?? undefined}
               route={route ?? undefined}
               distance={distance ?? undefined}
-              pickupPoints={
-                pickupQuery.data
-                  ? (pickupQuery.data.filter(Boolean) as any)
-                  : undefined
-              }
               generatedStops={generatedStops ?? undefined}
               onMapClick={handleMapClick}
             />
@@ -780,13 +551,11 @@ export default function DriverPage() {
                 </button>
                 <button
                   className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                  onClick={handleFindPickupPoints}
                 >
                   Buscar puntos
                 </button>
                 <button
                   className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                  onClick={handleGenerateStops}
                 >
                   Generar paradas
                 </button>
@@ -795,7 +564,6 @@ export default function DriverPage() {
               <div className="flex flex-col gap-2">
                 <button
                   className="rounded-md bg-white px-3 py-2 shadow-md transform transition-transform duration-300 hover:scale-105"
-                  onClick={() => void handleCreateTemplate()}
                 >
                   Guardar plantilla
                 </button>
@@ -834,21 +602,6 @@ export default function DriverPage() {
             </select>
           </div>
 
-          {pickupQuery.data && pickupQuery.data.length > 0 && (
-            <div className="mt-4 rounded bg-white p-3 shadow-md transform transition-transform duration-300 hover:scale-105">
-              <div className="text-sm text-gray-500">Puntos encontrados</div>
-              <ul className="mt-2 max-h-40 overflow-y-auto text-sm">
-                {(pickupQuery.data ?? []).filter(Boolean).map((p: any) => (
-                  <li key={p.id} className="py-1">
-                    <strong>{p.label}</strong>
-                    <div className="text-xs text-gray-500">
-                      {p.site?.name ?? "-"} · {p.distanceMeters} m
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </aside>
       </div>
     </div>
