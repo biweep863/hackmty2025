@@ -11,6 +11,7 @@ async function main() {
       id: "u_admin",
       email: "admin@example.com",
       name: "Admin",
+      password: "admin123", // In production, this should be hashed
     },
   });
 
@@ -21,6 +22,7 @@ async function main() {
       id: "u_guest",
       email: "guest@example.com",
       name: "Guest",
+      password: "guest123", // In production, this should be hashed
     },
   });
 

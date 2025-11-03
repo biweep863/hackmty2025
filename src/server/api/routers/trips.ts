@@ -12,6 +12,28 @@ export const tripsRouter = createTRPCRouter({
     },
   });
 }),
+  discover: publicProcedure
+    .input(
+      z.object({
+        status: z.string().optional(),
+      })
+    )
+    .query(async ({ input }) => {
+      const where: any = {};
+      if (input.status) {
+        where.status = input.status;
+      }
+      return db.trip.findMany({
+        where,
+        include: {
+          driver: true,
+          routeTemplate: true,
+          tripStops: true,
+          bookings: true,
+        },
+        orderBy: { departureAt: "asc" },
+      });
+    }),
   saveTrip: publicProcedure
     .input(
       z.object({
