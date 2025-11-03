@@ -105,7 +105,9 @@ export default function Navbar() {
 
   const shouldShow =
     exactRoutes.includes(pathname) ||
-    prefixRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"));
+    prefixRoutes.some(
+      (route) => pathname === route || pathname.startsWith(route + "/"),
+    );
 
   if (!shouldShow) {
     return null;
@@ -121,8 +123,7 @@ export default function Navbar() {
     label: string;
     Icon: React.ComponentType<{ className?: string }>;
   }) => {
-    const isActive =
-      pathname === href || pathname.startsWith(href + "/");
+    const isActive = pathname === href || pathname.startsWith(href + "/");
 
     return (
       <Link href={href} className="group block px-3 py-2 text-center">
@@ -132,12 +133,10 @@ export default function Navbar() {
             !isActive
               ? "group-hover:bg-white/20 group-hover:ring group-hover:ring-white/30 group-hover:backdrop-blur-sm"
               : "",
-            isActive
-              ? "bg-white/20 ring ring-white/30 backdrop-blur-sm"
-              : "",
+            isActive ? "bg-white/20 ring ring-white/30 backdrop-blur-sm" : "",
           ].join(" ")}
         >
-          <Icon className="w-4 h-4" />
+          <Icon className="h-4 w-4" />
           <span className="leading-none">{label}</span>
         </div>
       </Link>
@@ -146,16 +145,16 @@ export default function Navbar() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 z-[2000] w-full bg-gradient-to-r from-black/60 to-red-600/60 backdrop-blur-md text-white shadow-xl"
+      className="fixed bottom-0 left-0 z-[2000] w-full bg-gradient-to-r from-black/60 to-red-600/60 text-white shadow-xl backdrop-blur-md"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* AHORA SON 4 COLUMNAS */}
         <div className="grid h-14 grid-cols-4 items-center">
-          <NavButton href="/rider"  label="Inicio"   Icon={HomeIcon} />
-          <NavButton href="/driver" label="Viajes"   Icon={TripIcon} />
-          <NavButton href="/trips"  label="Agenda"   Icon={CalendarIcon} />
-          <NavButton href="/user"   label="Usuario"  Icon={UserIcon} />
+          <NavButton href="/rider" label="Inicio" Icon={HomeIcon} />
+          <NavButton href="/driver" label="Viajes" Icon={TripIcon} />
+          <NavButton href="/trips" label="Agenda" Icon={CalendarIcon} />
+          <NavButton href="/user" label="Usuario" Icon={UserIcon} />
         </div>
       </div>
     </nav>

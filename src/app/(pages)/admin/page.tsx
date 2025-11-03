@@ -76,8 +76,8 @@ export default async function AdminPage() {
                     <h3 className="mb-2 text-sm font-semibold text-gray-800">
                       Daily Sales Trend
                     </h3>
-                    <div className="rounded border bg-white px-4 justify-center items-center">
-                      <div className="flex justify-center items-center w-full">
+                    <div className="items-center justify-center rounded border bg-white px-4">
+                      <div className="flex w-full items-center justify-center">
                         <Image
                           src="/Grafica.jpg"
                           alt="Sparkline Gradient Background"
@@ -87,7 +87,7 @@ export default async function AdminPage() {
                           priority
                         />
                       </div>
-                      <div className="relative w-full h-auto overflow-hidden">
+                      <div className="relative h-auto w-full overflow-hidden">
                         <div className="relative z-10">
                           <Sparkline
                             series={trend.series.map((d) => ({

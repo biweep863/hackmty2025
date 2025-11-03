@@ -1,104 +1,123 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  // Upsert usuarios de prueba
-  const adminUser = await prisma.user.upsert({
-    where: { email: "admin@example.com" },
-    update: { name: "Admin" },
-    create: {
-      id: "u_admin",
-      email: "admin@example.com",
-      name: "Admin",
-    },
-  });
+	console.log("Seeding database...");
 
-  const guestUser = await prisma.user.upsert({
-    where: { email: "guest@example.com" },
-    update: { name: "Guest" },
-    create: {
-      id: "u_guest",
-      email: "guest@example.com",
-      name: "Guest",
-    },
-  });
+	// Create users (upsert so it's safe to re-run)
+	const alice = await prisma.user.upsert({
+		where: { email: "alice@example.com" },
+		update: {},
+		create: {
+			email: "alice@example.com",
+			name: "Alice Driver",
+			password: "password1",
+		},
+	});
 
-  // CarpoolerProfile (ajusta campos según tu schema)
-  let carpooler = await prisma.carpoolerProfile.findUnique({
-    where: { userId: adminUser.id },
-  });
+	const bob = await prisma.user.upsert({
+		where: { email: "bob@example.com" },
+		update: {},
+		create: {
+			email: "bob@example.com",
+			name: "Bob Rider",
+			password: "password2",
+		},
+	});
 
-  if (!carpooler) {
-    carpooler = await prisma.carpoolerProfile.create({
-      data: {
-        userId: adminUser.id,
-        vehicleMake: "Toyota",
-        vehicleModel: "Corolla",
-        vehicleColor: "Red",
-        plateLast4: "1234",
-        seatsDefault: 4,
-        isVerified: true,
-      },
-    });
-  }
+	const carla = await prisma.user.upsert({
+		where: { email: "carla@example.com" },
+		update: {},
+		create: {
+			email: "carla@example.com",
+			name: "Carla Driver",
+			password: "password3",
+		},
+	});
 
-  // RouteTemplate
-  const routeTemplate = await prisma.routeTemplate.create({
-    data: {
-      carpoolerId: carpooler.id,
-      fromLabel: "Home",
-      toLabel: "Office",
-      isActive: true,
-    },
-  });
+	// Clear existing rides & generated stops so seed is idempotent for these tables
+	await prisma.ride.deleteMany({});
+	await prisma.generatedStop.deleteMany({});
 
-  // Trips
-  const tripsData = Array.from({ length: 8 }).map((_, i) => ({
-    // si tu Trip.id es cuid() por defecto, no pases id
-    driverId: adminUser.id,
-    routeTemplateId: routeTemplate.id,
-    departureAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
-    seatsTotal: 4,
-    seatsTaken: Math.floor(Math.random() * 4),
-    status: i % 3 === 0 ? "COMPLETED" : i % 3 === 1 ? "OPEN" : "CANCELED",
-  }));
+	// Create example rides (Monterrey-ish coordinates)
+	const ridesData = [
+		{
+			id: undefined,
+			driverId: alice.id,
+			origin: "Centro Monterrey",
+			destination: "San Pedro Garza Garcia",
+			latStart: new Prisma.Decimal("25.660000"),
+			lngStart: new Prisma.Decimal("-100.310000"),
+			latEnd: new Prisma.Decimal("25.669000"),
+			lngEnd: new Prisma.Decimal("-100.345000"),
+			distanceKm: new Prisma.Decimal("8.50"),
+			price: new Prisma.Decimal("120.00"),
+			durationMin: 20,
+		},
+		{
+			id: undefined,
+			driverId: carla.id,
+			origin: "UANL - Facultad",
+			destination: "Estadio BBVA",
+			latStart: new Prisma.Decimal("25.720000"),
+			lngStart: new Prisma.Decimal("-100.310000"),
+			latEnd: new Prisma.Decimal("25.710000"),
+			lngEnd: new Prisma.Decimal("-100.520000"),
+			distanceKm: new Prisma.Decimal("25.40"),
+			price: new Prisma.Decimal("280.00"),
+			durationMin: 40,
+		},
+	];
 
-  const createdTrips = [];
-  for (const t of tripsData) {
-    const created = await prisma.trip.create({ data: t as any });
-    createdTrips.push(created);
-  }
+	for (const r of ridesData) {
+		// prisma requires explicit create, driver relation uses driverId field
+		await prisma.ride.create({
+			data: {
+				driverId: r.driverId,
+				origin: r.origin,
+				destination: r.destination,
+				latStart: r.latStart,
+				lngStart: r.lngStart,
+				latEnd: r.latEnd,
+				lngEnd: r.lngEnd,
+				distanceKm: r.distanceKm,
+				price: r.price,
+				durationMin: r.durationMin,
+			},
+		});
+	}
 
-  // Bookings (guest como rider)
-  for (const trip of createdTrips) {
-    const ridersToCreate = Math.min(
-      Math.max(1, Math.floor(Math.random() * 3)),
-      trip.seatsTotal ?? 1,
-    );
-    for (let r = 0; r < ridersToCreate; r++) {
-      try {
-        await prisma.booking.create({
-          data: {
-            tripId: trip.id,
-            riderId: guestUser.id,
-            status: "ACCEPTED",
-          },
-        });
-      } catch (_) {
-        // ignore duplicates
-      }
-    }
-  }
+	// Example generated stops
+	await prisma.generatedStop.createMany({
+		data: [
+			{
+				label: "Parada A - Centro",
+				lat: new Prisma.Decimal("25.660500") as any,
+				lng: new Prisma.Decimal("-100.315000") as any,
+				routeHash: "route-1",
+				creatorId: alice.id,
+			},
+			{
+				label: "Parada B - San Pedro",
+				lat: new Prisma.Decimal("25.668500") as any,
+				lng: new Prisma.Decimal("-100.342000") as any,
+				routeHash: "route-1",
+				creatorId: alice.id,
+			},
+		],
+		skipDuplicates: true,
+	});
 
-  console.log("Seeding finished");
+	console.log("Seeding finished.");
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	})
+	.finally(async () => {
+		await prisma.$disconnect();
+	});
+
