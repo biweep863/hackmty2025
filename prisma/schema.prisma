@@ -7,38 +7,15 @@ generator client {
     provider = "prisma-client-js"
 }
 
-/// Usuarios ya existen en tu sistema SSO; aquí asumimos que
-/// tienes una tabla User sincronizada (o la referenciamos por id).
 model User {
     id               String            @id @default(cuid())
     email            String            @unique
     name             String
     password         String
-    // Relación con carpool
     ridesOffered     Ride[] @relation("RidesOffered")         
     ridesReserved    Ride[] @relation("RideReservations")
-    // Generated stops created by this user
     generatedStops   GeneratedStop[]
 }
-
-/// Sedes del banco (orígenes/destinos frecuentes)
-// model Site {
-//     id        String   @id @default(cuid())
-//     code      String   @unique
-//     name      String
-//     address   String?
-//     lat       Decimal? @db.Decimal(9, 6)
-//     lng       Decimal? @db.Decimal(9, 6)
-//     createdAt DateTime @default(now())
-//     updatedAt DateTime @updatedAt
-
-//     pickupPoints PickupPoint[]
-
-//     // Rutas donde este Site es el origen (A)
-//     routeTemplatesFrom RouteTemplate[] @relation("FromSiteTemplates")
-//     // Rutas donde este Site es el destino (B)
-//     routeTemplatesTo   RouteTemplate[] @relation("ToSiteTemplates")
-// }
 
 model Ride {
     id          String   @id @default(cuid())
@@ -57,136 +34,18 @@ model Ride {
     createdAt   DateTime  @default(now())
 }
 
-// model CarpoolerProfile {
-//     id           String  @id @default(cuid())
-//     userId       String  @unique
-//     vehicleMake  String?
-//     vehicleModel String?
-//     vehicleColor String?
-//     plateLast4   String? // sin datos sensibles
-//     seatsDefault Int     @default(3) // asientos ofrecidos por defecto
-//     isVerified   Boolean @default(false)
-
-//     user           User            @relation(fields: [userId], references: [id])
-//     availabilities Availability[]
-//     routeTemplates RouteTemplate[]
-//     createdAt      DateTime        @default(now())
-//     updatedAt      DateTime        @updatedAt
-// }
-
-/// Puntos de recogida (predefinidos por Seguridad/Facilities)
-// model PickupPoint {
-//     id        String    @id @default(cuid())
-//     siteId    String
-//     label     String
-//     lat       Decimal?  @db.Decimal(9, 6)
-//     lng       Decimal?  @db.Decimal(9, 6)
-//     isActive  Boolean   @default(true)
-//     site      Site      @relation(fields: [siteId], references: [id])
-//     createdAt DateTime  @default(now())
-//     updatedAt DateTime  @updatedAt
-//     Trip      Trip[]
-//     Booking   Booking[]
-
-//     @@index([siteId])
-// }
-
-/// Plantilla de ruta A→B del carpoolero (p.ej. Casa→Sede Centro)
-// model RouteTemplate {
-//     id          String @id @default(cuid())
-//     carpoolerId String
-
-//     // Origen
-//     fromSiteId String?
-//     fromSite   Site?   @relation("FromSiteTemplates", fields: [fromSiteId], references: [id])
-
-//     fromLabel String
-//     fromLat   Decimal? @db.Decimal(9, 6)
-//     fromLng   Decimal? @db.Decimal(9, 6)
-
-//     // Destino
-//     toSiteId String?
-//     toSite   Site?   @relation("ToSiteTemplates", fields: [toSiteId], references: [id])
-
-//     toLabel String
-//     toLat   Decimal? @db.Decimal(9, 6)
-//     toLng   Decimal? @db.Decimal(9, 6)
-
-//     isActive Boolean @default(true)
-
-//     carpooler    CarpoolerProfile @relation(fields: [carpoolerId], references: [id])
-//     Availability Availability[]
-//     Trip         Trip[]
-
-//     createdAt DateTime @default(now())
-//     updatedAt DateTime @updatedAt
-
-//     @@index([carpoolerId])
-//     @@index([fromSiteId])
-//     @@index([toSiteId])
-// }
-
-/// Disponibilidad del carpoolero: puntual o recurrente
-// model Availability {
-//     id              String           @id @default(cuid())
-//     carpoolerId     String
-//     routeTemplateId String
-//     type            AvailabilityType
-//     // puntual
-//     startAt         DateTime?
-//     endAt           DateTime?
-//     // recurrente (semana)
-//     // 0=Dom ... 6=Sáb; se guarda como arreglo de ints (Postgres)
-//     weekdayMask     Int[] // e.g. [1,2,3,4,5] para Lun-Vie
-//     timeWindowStart String? // "08:00"
-//     timeWindowEnd   String? // "09:00"
-//     seats           Int              @default(3)
-//     isActive        Boolean          @default(true)
-
-//     carpooler     CarpoolerProfile @relation(fields: [carpoolerId], references: [id])
-//     routeTemplate RouteTemplate    @relation(fields: [routeTemplateId], references: [id])
-//     createdAt     DateTime         @default(now())
-//     updatedAt     DateTime         @updatedAt
-
-//     @@index([carpoolerId])
-//     @@index([routeTemplateId])
-//     @@index([type, startAt, endAt])
-// }
-
 enum AvailabilityType {
     ONE_OFF
     RECURRING
 }
 
-
 enum TripStatus {
     OPEN
-    LOCKED // saliendo pronto / ya no acepta nuevas
+    LOCKED
     STARTED
     COMPLETED
     CANCELED
 }
-
-/// Reserva (solicitud) de asiento por parte de un usuario
-// model Booking {
-//     id            String        @id @default(cuid())
-//     tripId        String
-//     riderId       String
-//     status        BookingStatus @default(PENDING)
-//     // punto de recogida elegido dentro de los sugeridos
-//     pickupPointId String?
-//     pickupNote    String?
-
-//     trip        Trip         @relation(fields: [tripId], references: [id])
-//     rider       User         @relation(fields: [riderId], references: [id])
-//     pickupPoint PickupPoint? @relation(fields: [pickupPointId], references: [id])
-
-//     createdAt DateTime @default(now())
-//     updatedAt DateTime @updatedAt
-
-//     @@unique([tripId, riderId]) // un rider no solicita dos veces el mismo trip
-//     @@index([riderId, status])
-// }
 
 enum BookingStatus {
     PENDING
@@ -196,36 +55,6 @@ enum BookingStatus {
     CANCELED_BY_DRIVER
 }
 
-/// Models required by next-auth when using the Prisma adapter with `session.strategy = "database"`.
-/// See: https://next-auth.js.org/adapters/prisma
-// model Account {
-//     id                String  @id @default(cuid())
-//     userId            String
-//     type              String
-//     provider          String
-//     providerAccountId String
-//     refresh_token     String?
-//     access_token      String?
-//     expires_at        Int?
-//     token_type        String?
-//     scope             String?
-//     id_token          String?
-//     session_state     String?
-
-//     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-//     @@unique([provider, providerAccountId])
-// }
-
-// model Session {
-//     id           String   @id @default(cuid())
-//     sessionToken String   @unique
-//     userId       String
-//     expires      DateTime
-
-//     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-// }
-
 model VerificationToken {
     identifier String
     token      String   @unique
@@ -234,7 +63,6 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-/// Generated stops created by drivers (suggested stops along a route)
 model GeneratedStop {
     id        String   @id @default(cuid())
     label     String?

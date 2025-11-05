@@ -38,7 +38,6 @@ export default function RiderPage() {
     (nearestInput ?? { lat: 0, lng: 0 }) as any,
     { enabled: !!nearestInput },
   );
-  const joinTrip = api.routes.joinTrip.useMutation();
   const [routePoints, setRoutePoints] = useState<[number, number][] | null>(
     null,
   );
@@ -258,7 +257,6 @@ export default function RiderPage() {
 
   const handleJoin = async (tripId: string, stopId?: string) => {
     try {
-      await joinTrip.mutateAsync({ tripId, stopId });
       toast.success("Solicitud de asiento enviada");
     } catch (err) {
       console.error(err);
@@ -308,7 +306,7 @@ export default function RiderPage() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-2 px-2 text-sm">
+              {/* <label className="flex items-center gap-2 px-2 text-sm">
                 <input
                   type="checkbox"
                   checked={useGemini}
@@ -316,7 +314,7 @@ export default function RiderPage() {
                   className="h-4 w-4 rounded border-gray-300 text-red-500 focus:ring-red-200"
                 />
                 <span>Usar Gemini</span>
-              </label>
+              </label> */}
               <div className="flex gap-3">
                 <button
                   className={`rounded-lg px-4 py-2 text-sm font-medium shadow-md transition hover:scale-105 ${pinMode === "searchPin" ? "bg-red-500 text-white" : "border border-red-500 bg-white text-red-500"}`}
@@ -363,7 +361,7 @@ export default function RiderPage() {
               </div>
             </div>
           </div>
-          <div className="h-[70vh] mx-auto lg:ml-16 rounded-lg border border-gray-300 shadow-lg">
+          <div className="mx-auto h-[70vh] rounded-lg border border-gray-300 shadow-lg lg:ml-16">
             <Map
               onMapClick={(lat, lng) => {
                 if (pinMode === "searchPin") {
@@ -430,28 +428,6 @@ export default function RiderPage() {
                   : undefined
               }
             />
-            {results && results.length > 0 && (
-              <ul className="mt-4 space-y-3">
-                {results.map((r: any) => (
-                  <li key={r.stopId} className="rounded-lg border border-gray-200 p-4 shadow-md hover:shadow-lg">
-                    <div className="text-sm font-medium text-gray-800">
-                      {r.trip.routeTemplate?.fromLabel} → {r.trip.routeTemplate?.toLabel}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {r.distanceMeters} m · Asientos: {r.trip.seatsTaken}/{r.trip.seatsTotal}
-                    </div>
-                    <div className="mt-3 flex gap-3">
-                      <button
-                        className="transform rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white shadow-md transition hover:scale-105 hover:bg-red-600"
-                        onClick={() => void handleJoin(r.trip.id, r.stopId)}
-                      >
-                        Unirse
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
 
             {/* Nearest-by-Gemini / local result preview */}
             {nearestQuery.data && (

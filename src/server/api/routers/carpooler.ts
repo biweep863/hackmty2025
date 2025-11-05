@@ -20,10 +20,9 @@ export const carpoolerRouter = createTRPCRouter({
     )
     .mutation(async ({ ctx, input }) => {
       // const userId = ctx.session!.user.id;
-      const driver = await db.user
-        .findUnique({
-          where: { email: input.driverEmail },
-        })
+      const driver = await db.user.findUnique({
+        where: { email: input.driverEmail },
+      });
       return db.ride.create({
         data: {
           origin: input.origin,
@@ -37,7 +36,7 @@ export const carpoolerRouter = createTRPCRouter({
           price: input.price,
           driver: {
             connect: { id: driver?.id },
-          }
+          },
         },
       });
     }),
